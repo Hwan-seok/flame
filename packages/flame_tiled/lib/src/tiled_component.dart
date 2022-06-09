@@ -29,11 +29,12 @@ class TiledComponent extends Component {
   /// Loads a [TiledComponent] from a file.
   static Future<TiledComponent> load(
     String fileName,
-    Vector2 destTileSize, {
+    Vector2 destTileSize,
+    bool shouldFlip, {
     int? priority,
   }) async {
     return TiledComponent(
-      await RenderableTiledMap.fromFile(fileName, destTileSize),
+      await RenderableTiledMap.fromFile(fileName, destTileSize, shouldFlip),
       priority: priority,
     );
   }

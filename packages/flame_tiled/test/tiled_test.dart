@@ -16,7 +16,7 @@ void main() {
       imageNames: ['map-level1.png'],
       mapPath: 'test/assets/map.tmx',
     );
-    final tiled = await TiledComponent.load('x', Vector2.all(16));
+    final tiled = await TiledComponent.load('x', Vector2.all(16), true);
     expect(tiled.tileMap.batchesByLayer.length == 1, true);
   });
 
@@ -53,6 +53,7 @@ void main() {
       overlapMap = await RenderableTiledMap.fromFile(
         '2_tiles-green_on_red.tmx',
         Vector2.all(16),
+        true,
       );
       final canvasRecorder = PictureRecorder();
       final canvas = Canvas(canvasRecorder);
@@ -138,6 +139,7 @@ void main() {
       overlapMap = await RenderableTiledMap.fromFile(
         '8_tiles-flips.tmx',
         Vector2.all(16),
+        true,
       );
       final canvasRecorder = PictureRecorder();
       final canvas = Canvas(canvasRecorder);
@@ -225,8 +227,8 @@ void main() {
         imageNames: ['map-level1.png'],
         mapPath: 'test/assets/layers_test.tmx',
       );
-      _renderableTiledMap =
-          await RenderableTiledMap.fromFile('layers_test.tmx', Vector2.all(32));
+      _renderableTiledMap = await RenderableTiledMap.fromFile(
+          'layers_test.tmx', Vector2.all(32), true);
     });
 
     test('Get Tile Layer', () {

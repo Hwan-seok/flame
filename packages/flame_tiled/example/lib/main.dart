@@ -13,7 +13,8 @@ class TiledGame extends FlameGame {
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-    final tiledMap = await TiledComponent.load('map.tmx', Vector2.all(16));
+    final tiledMap =
+        await TiledComponent.load('map.tmx', Vector2.all(16), true);
     add(tiledMap);
 
     final objGroup = tiledMap.tileMap.getLayer<ObjectGroup>('AnimatedCoins');

@@ -21,12 +21,14 @@ class RenderableTiledMap {
 
   /// Cached list of [SpriteBatch]es, ordered by layer.
   final List<Map<String, SpriteBatch>> batchesByLayer;
+  final bool shouldFlip;
 
   /// {@macro _renderable_tiled_map}
   RenderableTiledMap(
     this.map,
     this.batchesByLayer,
     this.destTileSize,
+    this.shouldFlip,
   ) {
     refreshCache();
   }
@@ -91,27 +93,30 @@ class RenderableTiledMap {
   static Future<RenderableTiledMap> fromFile(
     String fileName,
     Vector2 destTileSize,
+    bool shouldFlip,
   ) async {
     final contents = await Flame.bundle.loadString('assets/tiles/$fileName');
-    return fromString(contents, destTileSize);
+    return fromString(contents, destTileSize, shouldFlip);
   }
 
   /// Parses a string returning a [RenderableTiledMap].
   static Future<RenderableTiledMap> fromString(
     String contents,
     Vector2 destTileSize,
+    bool shouldFlip,
   ) async {
     final map = await TiledMap.fromString(
       contents,
       FlameTsxProvider.parse,
     );
-    return fromTiledMap(map, destTileSize);
+    return fromTiledMap(map, destTileSize, shouldFlip);
   }
 
   /// Parses a [TiledMap] returning a [RenderableTiledMap].
   static Future<RenderableTiledMap> fromTiledMap(
     TiledMap map,
     Vector2 destTileSize,
+    bool shouldFlip,
   ) async {
     final batchesByLayer = await Future.wait(
       _renderableTileLayers(map).map((e) => _loadImages(map)),
@@ -121,6 +126,7 @@ class RenderableTiledMap {
       map,
       batchesByLayer,
       destTileSize,
+      shouldFlip,
     );
   }
 
@@ -175,7 +181,12 @@ class RenderableTiledMap {
         if (img != null) {
           final batch = batchMap[img.source];
           final src = ts.computeDrawRect(t).toRect();
-          final flips = SimpleFlips.fromFlips(tile.flips);
+          late SimpleFlips flips;
+          if (shouldFlip) {
+            flips = SimpleFlips.fromFlips(tile.flips);
+          } else {
+            flips = SimpleFlips.fromFlips(const Flips.defaults());
+          }
           final size = destTileSize;
           final scale = size.x / src.width;
           final anchorX = src.width / 2;
