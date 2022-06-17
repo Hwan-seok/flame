@@ -115,6 +115,32 @@ class RenderableTiledMap {
     );
   }
 
+  static Future<List<RenderableTiledMap>> fromSplited(
+    String contents,
+    Vector2 destTileSize,
+  ) async {
+    final map = await TiledMap.fromString(
+      contents,
+      FlameTsxProvider.parse,
+    );
+    final layerCount = map.layers.length;
+    final tiledMapFutures = <Future<TiledMap>>[Future.value(map)];
+    for (var idx = 0; idx < layerCount - 1; idx++) {
+      final tiledMapFuture = TiledMap.fromString(
+        contents,
+        FlameTsxProvider.parse,
+      );
+      tiledMapFutures.add(tiledMapFuture);
+    }
+    final tiledMaps = await Future.wait(tiledMapFutures);
+
+    for (var idx = 0; idx < layerCount; idx++) {
+      tiledMaps[idx].layers = [tiledMaps[idx].layers[idx]];
+    }
+
+    return Future.wait(tiledMaps.map((e) => fromTiledMap(e, destTileSize)));
+  }
+
   static Iterable<TileLayer> _renderableTileLayers(TiledMap map) {
     return map.layers.where((layer) => layer.visible).whereType<TileLayer>();
   }
