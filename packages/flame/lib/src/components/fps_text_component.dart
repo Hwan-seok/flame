@@ -14,12 +14,15 @@ class FpsTextComponent<T extends TextRenderer> extends TextComponent {
     super.angle,
     super.anchor,
     int? priority,
-  })  : fpsComponent = FpsComponent(windowSize: windowSize),
+    FpsComponent? fpsComponent,
+  })  : fpsComponent = fpsComponent ?? FpsComponent(windowSize: windowSize),
         super(
           priority: priority ?? double.maxFinite.toInt(),
         ) {
     positionType = PositionType.viewport;
-    add(fpsComponent);
+    if (this.fpsComponent.parent == null) {
+      add(this.fpsComponent);
+    }
   }
 
   final int decimalPlaces;
