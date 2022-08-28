@@ -150,6 +150,16 @@ void main() {
       expect(overlays.activeOverlays.length, 1);
     });
 
+    test('can remove multiple overlays at once using activeOverlays', () {
+      final overlays = FlameGame().overlays
+        ..addEntry('test1', (ctx, game) => Container())
+        ..addEntry('test2', (ctx, game) => Container())
+        ..addEntry('test3', (ctx, game) => Container());
+      overlays.addAll(['test1', 'test2', 'test3']);
+
+      overlays.removeAll(overlays.activeOverlays);
+    });
+
     test('clears all overlays', () {
       final overlays = FlameGame().overlays
         ..addEntry('test1', (ctx, game) => Container())
