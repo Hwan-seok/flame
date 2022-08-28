@@ -156,8 +156,34 @@ void main() {
         ..addEntry('test2', (ctx, game) => Container())
         ..addEntry('test3', (ctx, game) => Container());
       overlays.addAll(['test1', 'test2', 'test3']);
+      overlays.removeAll([...overlays.activeOverlays]);
+    });
 
-      overlays.removeAll(overlays.activeOverlays);
+    test(
+        'can remove multiple overlays at once with filtered iterable activeOverlays',
+        () {
+      final overlays = FlameGame().overlays
+        ..addEntry('test1', (ctx, game) => Container())
+        ..addEntry('test2', (ctx, game) => Container())
+        ..addEntry('test3', (ctx, game) => Container());
+      overlays.addAll(['test1', 'test2', 'test3']);
+      final newIterable =
+          overlays.activeOverlays.where((element) => element != 'test1');
+      overlays.removeAll(newIterable);
+    });
+
+    test(
+        'can remove multiple overlays at once with filtered list activeOverlays',
+        () {
+      final overlays = FlameGame().overlays
+        ..addEntry('test1', (ctx, game) => Container())
+        ..addEntry('test2', (ctx, game) => Container())
+        ..addEntry('test3', (ctx, game) => Container());
+      overlays.addAll(['test1', 'test2', 'test3']);
+      final newIterable = overlays.activeOverlays
+          .where((element) => element != 'test1')
+          .toList();
+      overlays.removeAll(newIterable);
     });
 
     test('clears all overlays', () {
