@@ -350,6 +350,11 @@ class RenderableTiledMap {
           break;
       }
     }
+    // renderLayers.forEach((element) {
+    //   if (element is TileLayer) {
+    //     print('${element.tiledAtlas.atlas} ${element.layer.name}');
+    //   }
+    // });
     return renderLayers;
   }
 

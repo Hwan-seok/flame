@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flame/extensions.dart';
 import 'package:flame/game.dart';
 import 'package:flame_tiled/flame_tiled.dart';
@@ -74,6 +76,7 @@ class TileLayer extends RenderableLayer<tiled.TileLayer> {
   }
 
   void _cacheOrthogonalLayerTiles() {
+    log('start caching ${layer.name} ');
     final tileData = layer.tileData!;
     final size = destTileSize;
     final halfMapTile = Vector2(map.tileWidth / 2, map.tileHeight / 2);
@@ -81,7 +84,6 @@ class TileLayer extends RenderableLayer<tiled.TileLayer> {
     if (batch == null) {
       return;
     }
-
     for (var ty = 0; ty < tileData.length; ty++) {
       final tileRow = tileData[ty];
 
@@ -98,7 +100,6 @@ class TileLayer extends RenderableLayer<tiled.TileLayer> {
         if (img == null) {
           continue;
         }
-
         if (!tiledAtlas.contains(img.source)) {
           return;
         }
@@ -111,7 +112,9 @@ class TileLayer extends RenderableLayer<tiled.TileLayer> {
               .translate(spriteOffset.dx, spriteOffset.dy),
         );
 
-        final flips = SimpleFlips.fromFlips(const Flips.defaults());
+        // final flips = SimpleFlips.fromFlips(const Flips.defaults());
+        final flips = SimpleFlips.fromFlips(tileGid.flips);
+        // if (flips.flip) print('${layer.name} flip!!!');
         final scale = size.x / src.width;
         final anchorX = src.width - halfMapTile.x;
         final anchorY = src.height - halfMapTile.y;

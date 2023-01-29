@@ -69,9 +69,11 @@ class TiledAtlas {
     tiled.TileLayer layer,
   ) async {
     final uniqueTilesets = <tiled.Tileset>{};
-    layer.data?.forEach((gid) {
-      if (gid == 0) return;
-      uniqueTilesets.add(map.tilesetByTileGId(gid));
+    layer.tileData?.forEach((row) {
+      row.forEach((gid) {
+        if (gid.tile == 0) return;
+        uniqueTilesets.add(map.tilesetByTileGId(gid.tile));
+      });
     });
 
     final images = uniqueTilesets.map((e) => e.image).whereNotNull().toList();
@@ -90,7 +92,6 @@ class TiledAtlas {
       // The map contains one image, so its either an atlas already, or a
       // really boring map.
       final tiledImage = images.first;
-      print('contains? ${Flame.images.containsKey(key)}');
       final image = await Flame.images.load(tiledImage.source!, key: key);
 
       return atlasMap[key] =
@@ -110,10 +111,8 @@ class TiledAtlas {
       final height = a.height! - b.height!;
       return height != 0 ? height : a.width! - b.width!;
     });
-    print('length? ${images.length}');
 
     for (final tiledImage in images) {
-      print('contains? ${Flame.images.containsKey(tiledImage.source!)}');
       final image = await Flame.images.load(tiledImage.source!);
       final rect = bin.pack(image.width.toDouble(), image.height.toDouble());
 
