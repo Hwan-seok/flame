@@ -363,6 +363,7 @@ class SpriteBatch {
     paint ??= _emptyPaint;
 
     if (useAtlas && _atlasReady) {
+      print("${_transforms.length}");
       canvas.drawAtlas(
         atlas,
         _transforms,

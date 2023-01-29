@@ -1,5 +1,6 @@
 import 'dart:ui';
 
+import 'package:collection/collection.dart';
 import 'package:flame/flame.dart';
 import 'package:flame/image_composition.dart';
 import 'package:flame/sprite.dart';
@@ -61,6 +62,75 @@ class TiledAtlas {
       }
     }
     return imageSet;
+  }
+
+  static Future<TiledAtlas> fromLayer(
+    tiled.TiledMap map,
+    tiled.TileLayer layer,
+  ) async {
+    final uniqueTilesets = <tiled.Tileset>{};
+    layer.data?.forEach((gid) {
+      if (gid == 0) return;
+      uniqueTilesets.add(map.tilesetByTileGId(gid));
+    });
+
+    final images = uniqueTilesets.map((e) => e.image).whereNotNull().toList();
+
+    if (images.isEmpty) {
+      // so this map has no tiles... Ok.
+      return TiledAtlas._(null, {}, 'atlas{empty}');
+    }
+    final key = atlasKey(images);
+
+    if (atlasMap.containsKey(key)) {
+      return atlasMap[key]!.clone();
+    }
+
+    if (images.length == 1) {
+      // The map contains one image, so its either an atlas already, or a
+      // really boring map.
+      final tiledImage = images.first;
+      print('contains? ${Flame.images.containsKey(key)}');
+      final image = await Flame.images.load(tiledImage.source!, key: key);
+
+      return atlasMap[key] =
+          TiledAtlas._(image, {tiledImage.source!: Offset.zero}, key);
+    }
+
+    final bin = RectangleBinPacker();
+    final recorder = PictureRecorder();
+    final canvas = Canvas(recorder);
+    final _emptyPaint = Paint();
+
+    final offsetMap = <String, Offset>{};
+
+    var pictureRect = Rect.zero;
+
+    images.sort((b, a) {
+      final height = a.height! - b.height!;
+      return height != 0 ? height : a.width! - b.width!;
+    });
+    print('length? ${images.length}');
+
+    for (final tiledImage in images) {
+      print('contains? ${Flame.images.containsKey(tiledImage.source!)}');
+      final image = await Flame.images.load(tiledImage.source!);
+      final rect = bin.pack(image.width.toDouble(), image.height.toDouble());
+
+      pictureRect = pictureRect.expandToInclude(rect);
+
+      final offset =
+          offsetMap[tiledImage.source!] = Offset(rect.left, rect.top);
+
+      canvas.drawImage(image, offset, _emptyPaint);
+    }
+    final picture = recorder.endRecording();
+    final image = await picture.toImageSafe(
+      pictureRect.width.toInt(),
+      pictureRect.height.toInt(),
+    );
+    Flame.images.add(key, image);
+    return atlasMap[key] = TiledAtlas._(image, offsetMap, key);
   }
 
   /// Loads all the tileset images for the [map] into one [TiledAtlas].

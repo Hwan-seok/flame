@@ -111,7 +111,7 @@ class TileLayer extends RenderableLayer<tiled.TileLayer> {
               .translate(spriteOffset.dx, spriteOffset.dy),
         );
 
-        final flips = SimpleFlips.fromFlips(tileGid.flips);
+        final flips = SimpleFlips.fromFlips(const Flips.defaults());
         final scale = size.x / src.width;
         final anchorX = src.width - halfMapTile.x;
         final anchorY = src.height - halfMapTile.y;

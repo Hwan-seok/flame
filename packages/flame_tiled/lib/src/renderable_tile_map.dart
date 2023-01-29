@@ -74,8 +74,9 @@ class RenderableTiledMap {
 
   /// Changes the visibility of the corresponding layer, if different
   void setLayerVisibility(int layerId, bool visibility) {
-    if (map.layers[layerId].visible != visibility) {
-      map.layers[layerId].visible = visibility;
+    final layer = map.layers.where((element) => element.id == layerId).first;
+    if (layer.visible != visibility) {
+      layer.visible = visibility;
       _refreshCache();
     }
   }
@@ -196,9 +197,10 @@ class RenderableTiledMap {
     String fileName,
     Vector2 destTileSize, {
     Camera? camera,
+    bool useMine = false,
   }) async {
     final contents = await Flame.bundle.loadString('assets/tiles/$fileName');
-    return fromString(contents, destTileSize, camera: camera);
+    return fromString(contents, destTileSize, camera: camera, useMine: useMine);
   }
 
   /// Parses a string returning a [RenderableTiledMap].
@@ -206,12 +208,13 @@ class RenderableTiledMap {
     String contents,
     Vector2 destTileSize, {
     Camera? camera,
+    bool useMine = false,
   }) async {
     final map = await tiled.TiledMap.fromString(
       contents,
       FlameTsxProvider.parse,
     );
-    return fromTiledMap(map, destTileSize, camera: camera);
+    return fromTiledMap(map, destTileSize, camera: camera, useMine: useMine);
   }
 
   /// Parses a [tiled.TiledMap] returning a [RenderableTiledMap].
@@ -219,6 +222,7 @@ class RenderableTiledMap {
     tiled.TiledMap map,
     Vector2 destTileSize, {
     Camera? camera,
+    bool useMine = false,
   }) async {
     // We're not going to load animation frames that are never referenced; but
     // we do supply the common cache for all layers in this map, and maintain
@@ -229,6 +233,12 @@ class RenderableTiledMap {
     // order and Tiled won't complain, but we'll fail.
     map.tilesets.sort((l, r) => (l.firstGid ?? 0) - (r.firstGid ?? 0));
 
+    // parallelize the download of images.
+    await Future.wait([
+      ..._onlyTileImages(map)
+          .map((tiledImage) => Flame.images.load(tiledImage.source!))
+    ]);
+
     final renderableLayers = await _renderableLayers(
       map.layers,
       null,
@@ -236,7 +246,7 @@ class RenderableTiledMap {
       destTileSize,
       camera,
       animationFrames,
-      atlas: await TiledAtlas.fromTiledMap(map),
+      useMine ? null : await TiledAtlas.fromTiledMap(map),
     );
 
     return RenderableTiledMap(
@@ -248,15 +258,33 @@ class RenderableTiledMap {
     );
   }
 
+  /// Collect images that we'll use in tiles - exclude image layers.
+  static Set<tiled.TiledImage> _onlyTileImages(tiled.TiledMap map) {
+    final imageSet = <tiled.TiledImage>{};
+    for (var i = 0; i < map.tilesets.length; ++i) {
+      final image = map.tilesets[i].image;
+      if (image?.source != null) {
+        imageSet.add(image!);
+      }
+      for (var j = 0; j < map.tilesets[i].tiles.length; ++j) {
+        final image = map.tilesets[i].tiles[j].image;
+        if (image?.source != null) {
+          imageSet.add(image!);
+        }
+      }
+    }
+    return imageSet;
+  }
+
   static Future<List<RenderableLayer<tiled.Layer>>> _renderableLayers(
     List<tiled.Layer> layers,
     GroupLayer? parent,
     tiled.TiledMap map,
     Vector2 destTileSize,
     Camera? camera,
-    Map<tiled.Tile, TileFrames> animationFrames, {
-    required TiledAtlas atlas,
-  }) async {
+    Map<tiled.Tile, TileFrames> animationFrames,
+    TiledAtlas? atlas,
+  ) async {
     final renderLayers = <RenderableLayer<tiled.Layer>>[];
     for (final layer in layers.where((layer) => layer.visible)) {
       switch (layer.runtimeType) {
@@ -268,7 +296,7 @@ class RenderableTiledMap {
               map,
               destTileSize,
               animationFrames,
-              atlas.clone(),
+              atlas?.clone() ?? await TiledAtlas.fromLayer(map, layer),
             ),
           );
           break;
@@ -299,7 +327,7 @@ class RenderableTiledMap {
             destTileSize,
             camera,
             animationFrames,
-            atlas: atlas,
+            atlas,
           );
           renderLayers.add(renderableGroup);
           break;
