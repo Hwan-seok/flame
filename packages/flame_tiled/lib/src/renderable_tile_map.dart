@@ -249,6 +249,13 @@ class RenderableTiledMap {
     // order and Tiled won't complain, but we'll fail.
     map.tilesets.sort((l, r) => (l.firstGid ?? 0) - (r.firstGid ?? 0));
 
+    // parallelize the download of images.
+    await Future.wait([
+      ...map
+          .getTileImages()
+          .map((tiledImage) => Flame.images.load(tiledImage.source!))
+    ]);
+
     final renderableLayers = await _renderableLayers(
       map.layers,
       null,
@@ -256,7 +263,6 @@ class RenderableTiledMap {
       destTileSize,
       camera,
       animationFrames,
-      atlas: await TiledAtlas.fromTiledMap(map),
       ignoreFlip: ignoreFlip,
     );
 
@@ -276,7 +282,6 @@ class RenderableTiledMap {
     Vector2 destTileSize,
     Camera? camera,
     Map<Tile, TileFrames> animationFrames, {
-    required TiledAtlas atlas,
     bool? ignoreFlip,
   }) async {
     final visibleLayers = layers.where((layer) => layer.visible);
@@ -289,7 +294,6 @@ class RenderableTiledMap {
         destTileSize: destTileSize,
         camera: camera,
         animationFrames: animationFrames,
-        atlas: atlas,
         ignoreFlip: ignoreFlip,
       );
 
@@ -301,7 +305,6 @@ class RenderableTiledMap {
           destTileSize,
           camera,
           animationFrames,
-          atlas: atlas,
           ignoreFlip: ignoreFlip,
         );
       }

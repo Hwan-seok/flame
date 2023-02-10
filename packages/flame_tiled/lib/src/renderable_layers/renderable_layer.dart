@@ -33,7 +33,6 @@ abstract class RenderableLayer<T extends Layer> {
     required Vector2 destTileSize,
     required Camera? camera,
     required Map<Tile, TileFrames> animationFrames,
-    required TiledAtlas atlas,
     bool? ignoreFlip,
   }) async {
     if (layer is TileLayer) {
@@ -43,7 +42,7 @@ abstract class RenderableLayer<T extends Layer> {
         map: map,
         destTileSize: destTileSize,
         animationFrames: animationFrames,
-        atlas: atlas.clone(),
+        atlas: await TiledAtlas.fromLayer(map, layer),
         ignoreFlip: ignoreFlip,
       );
     } else if (layer is ImageLayer) {

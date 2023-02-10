@@ -1,5 +1,6 @@
 import 'dart:ui';
 
+import 'package:collection/collection.dart';
 import 'package:flame/flame.dart';
 import 'package:flame/image_composition.dart';
 import 'package:flame/sprite.dart';
@@ -55,27 +56,84 @@ class TiledAtlas {
     return 'atlas{$files}';
   }
 
-  /// Collect images that we'll use in tiles - exclude image layers.
-  static Set<TiledImage> _onlyTileImages(TiledMap map) {
-    final imageSet = <TiledImage>{};
-    for (var i = 0; i < map.tilesets.length; ++i) {
-      final image = map.tilesets[i].image;
-      if (image?.source != null) {
-        imageSet.add(image!);
-      }
-      for (var j = 0; j < map.tilesets[i].tiles.length; ++j) {
-        final image = map.tilesets[i].tiles[j].image;
-        if (image?.source != null) {
-          imageSet.add(image!);
-        }
-      }
+  static Future<TiledAtlas> fromLayer(
+    TiledMap map,
+    TileLayer layer,
+  ) async {
+    final uniqueTilesets = <Tileset>{};
+    layer.tileData?.forEach((row) {
+      row.forEach((gid) {
+        if (gid.tile == 0) return;
+        uniqueTilesets.add(map.tilesetByTileGId(gid.tile));
+      });
+    });
+
+    final images = uniqueTilesets
+        .map((e) => [e.image, ...e.tiles.map((e) => e.image)].whereNotNull())
+        .expand((element) => element)
+        .toList();
+
+    if (images.isEmpty) {
+      // so this map has no tiles... Ok.
+      return TiledAtlas._(atlas: null, offsets: {}, key: 'atlas{empty}');
     }
-    return imageSet;
+    final key = atlasKey(images);
+
+    if (atlasMap.containsKey(key)) {
+      return atlasMap[key]!.clone();
+    }
+
+    if (images.length == 1) {
+      // The map contains one image, so its either an atlas already, or a
+      // really boring map.
+      final tiledImage = images.first;
+      final image = await Flame.images.load(tiledImage.source!, key: key);
+
+      return atlasMap[key] = TiledAtlas._(
+        atlas: image,
+        offsets: {tiledImage.source!: Offset.zero},
+        key: key,
+      );
+    }
+
+    final bin = RectangleBinPacker();
+    final recorder = PictureRecorder();
+    final canvas = Canvas(recorder);
+    final _emptyPaint = Paint();
+
+    final offsetMap = <String, Offset>{};
+
+    var pictureRect = Rect.zero;
+
+    images.sort((b, a) {
+      final height = a.height! - b.height!;
+      return height != 0 ? height : a.width! - b.width!;
+    });
+
+    for (final tiledImage in images) {
+      final image = await Flame.images.load(tiledImage.source!);
+      final rect = bin.pack(image.width.toDouble(), image.height.toDouble());
+
+      pictureRect = pictureRect.expandToInclude(rect);
+
+      final offset =
+          offsetMap[tiledImage.source!] = Offset(rect.left, rect.top);
+
+      canvas.drawImage(image, offset, _emptyPaint);
+    }
+    final picture = recorder.endRecording();
+    final image = await picture.toImageSafe(
+      pictureRect.width.toInt(),
+      pictureRect.height.toInt(),
+    );
+    Flame.images.add(key, image);
+    return atlasMap[key] =
+        TiledAtlas._(atlas: image, offsets: offsetMap, key: key);
   }
 
   /// Loads all the tileset images for the [map] into one [TiledAtlas].
   static Future<TiledAtlas> fromTiledMap(TiledMap map) async {
-    final imageList = _onlyTileImages(map).toList();
+    final imageList = map.getTileImages().toList();
 
     if (imageList.isEmpty) {
       // so this map has no tiles... Ok.
@@ -146,5 +204,25 @@ class TiledAtlas {
       offsets: offsetMap,
       key: key,
     );
+  }
+}
+
+extension TiledMapHelper on TiledMap {
+  /// Collect images that we'll use in tiles - exclude image layers.
+  Set<TiledImage> getTileImages() {
+    final imageSet = <TiledImage>{};
+    for (var i = 0; i < tilesets.length; ++i) {
+      final image = tilesets[i].image;
+      if (image?.source != null) {
+        imageSet.add(image!);
+      }
+      for (var j = 0; j < tilesets[i].tiles.length; ++j) {
+        final image = tilesets[i].tiles[j].image;
+        if (image?.source != null) {
+          imageSet.add(image!);
+        }
+      }
+    }
+    return imageSet;
   }
 }
