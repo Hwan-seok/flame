@@ -93,5 +93,7 @@ class IsometricTileLayer extends FlameTileLayer {
         }
       }
     }
+
+    batch.cache();
   }
 }
