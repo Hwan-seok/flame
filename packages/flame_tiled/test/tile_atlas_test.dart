@@ -105,11 +105,13 @@ void main() {
         final component =
             await TiledComponent.load('isometric_plain.tmx', Vector2(128, 74));
 
-        final atlas = TiledAtlas.atlasMap.values.first;
-        expect(
-          await imageToPng(atlas.atlas!),
-          matchesGoldenFile('goldens/larger_atlas.png'),
-        );
+        final atlases = TiledAtlas.atlasMap.values.toList();
+        for (var idx = 0; idx < atlases.length; idx++) {
+          expect(
+            await imageToPng(atlases[idx].atlas!),
+            matchesGoldenFile('goldens/larger_atlas-$idx.png'),
+          );
+        }
         expect(
           renderMapToPng(component),
           matchesGoldenFile('goldens/larger_atlas_component.png'),
