@@ -5,7 +5,6 @@ import 'package:flame_tiled/src/renderable_layers/image_layer.dart';
 import 'package:flame_tiled/src/renderable_layers/object_layer.dart';
 import 'package:flame_tiled/src/renderable_layers/tile_layers/tile_layer.dart';
 import 'package:flame_tiled/src/tile_animation.dart';
-import 'package:flame_tiled/src/tile_atlas.dart';
 import 'package:meta/meta.dart';
 import 'package:tiled/tiled.dart';
 
@@ -42,7 +41,6 @@ abstract class RenderableLayer<T extends Layer> {
         map: map,
         destTileSize: destTileSize,
         animationFrames: animationFrames,
-        atlas: await TiledAtlas.fromLayer(map, layer),
         ignoreFlip: ignoreFlip,
       );
     } else if (layer is ImageLayer) {

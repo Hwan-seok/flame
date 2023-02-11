@@ -54,21 +54,21 @@ abstract class FlameTileLayer extends RenderableLayer<TileLayer> {
   }
 
   /// {@macro flame_tile_layer}
-  static FlameTileLayer load({
+  static Future<FlameTileLayer> load({
     required TileLayer layer,
     required GroupLayer? parent,
     required TiledMap map,
     required Vector2 destTileSize,
     required Map<Tile, TileFrames> animationFrames,
-    required TiledAtlas atlas,
     bool? ignoreFlip,
-  }) {
+  }) async {
     ignoreFlip ??= false;
 
     final mapOrientation = map.orientation;
     if (mapOrientation == null) {
       throw StateError('Map orientation should be present');
     }
+    final atlas = await TiledAtlas.fromLayer(map, layer);
 
     switch (mapOrientation) {
       case MapOrientation.isometric:
