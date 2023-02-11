@@ -231,7 +231,7 @@ class RenderableTiledMap {
   }
 
   /// Collect images that we'll use in tiles - exclude image layers.
-  static Set<TiledImage> getTileImages(TiledMap map) {
+  static Set<TiledImage> _getTileImages(TiledMap map) {
     final imageSet = <TiledImage>{};
     for (var i = 0; i < map.tilesets.length; ++i) {
       final image = map.tilesets[i].image;
@@ -268,7 +268,7 @@ class RenderableTiledMap {
 
     // parallelize the download of images.
     await Future.wait([
-      ...getTileImages(map)
+      ..._getTileImages(map)
           .map((tiledImage) => Flame.images.load(tiledImage.source!))
     ]);
 

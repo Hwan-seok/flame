@@ -68,6 +68,7 @@ class TiledAtlas {
         usedTilesets.add(map.tilesetByTileGId(gid.tile));
       });
     });
+
     return usedTilesets
         .map((e) => [e.image, ...e.tiles.map((e) => e.image)].whereNotNull())
         .expand((images) => images)
@@ -78,24 +79,28 @@ class TiledAtlas {
     TiledMap map,
     TileLayer layer,
   ) async {
-    final images = _getImagesUsedInLayer(map, layer);
-    if (images.isEmpty) {
+    final imageList = _getImagesUsedInLayer(map, layer);
+    if (imageList.isEmpty) {
       // so this map has no tiles... Ok.
-      return TiledAtlas._(atlas: null, offsets: {}, key: 'atlas{empty}');
+      return TiledAtlas._(
+        atlas: null,
+        offsets: {},
+        key: 'atlas{empty}',
+      );
     }
-    final key = atlasKey(images);
 
+    final key = atlasKey(imageList);
     if (atlasMap.containsKey(key)) {
       return atlasMap[key]!.clone();
     }
 
-    if (images.length == 1) {
+    if (imageList.length == 1) {
       // The map contains one image, so its either an atlas already, or a
       // really boring map.
-      final tiledImage = images.first;
+      final tiledImage = imageList.first;
       final image = await Flame.images.load(tiledImage.source!, key: key);
 
-      return atlasMap[key] = TiledAtlas._(
+      return atlasMap[key] ??= TiledAtlas._(
         atlas: image,
         offsets: {tiledImage.source!: Offset.zero},
         key: key,
@@ -111,12 +116,12 @@ class TiledAtlas {
 
     var pictureRect = Rect.zero;
 
-    images.sort((b, a) {
+    imageList.sort((b, a) {
       final height = a.height! - b.height!;
       return height != 0 ? height : a.width! - b.width!;
     });
 
-    for (final tiledImage in images) {
+    for (final tiledImage in imageList) {
       final image = await Flame.images.load(tiledImage.source!);
       final rect = bin.pack(image.width.toDouble(), image.height.toDouble());
 
@@ -133,7 +138,10 @@ class TiledAtlas {
       pictureRect.height.toInt(),
     );
     Flame.images.add(key, image);
-    return atlasMap[key] =
-        TiledAtlas._(atlas: image, offsets: offsetMap, key: key);
+    return atlasMap[key] = TiledAtlas._(
+      atlas: image,
+      offsets: offsetMap,
+      key: key,
+    );
   }
 }
