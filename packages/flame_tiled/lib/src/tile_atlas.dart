@@ -56,23 +56,29 @@ class TiledAtlas {
     return 'atlas{$files}';
   }
 
+  static List<TiledImage> _getImagesUsedInLayer(TiledMap map, TileLayer layer) {
+    final usedTilesets = <Tileset>{};
+    final cache = <int>{};
+    const emptyTile = 0;
+    layer.tileData?.forEach((ty) {
+      ty.forEach((gid) {
+        if (gid.tile == emptyTile || cache.contains(gid.tile)) {
+          return;
+        }
+        usedTilesets.add(map.tilesetByTileGId(gid.tile));
+      });
+    });
+    return usedTilesets
+        .map((e) => [e.image, ...e.tiles.map((e) => e.image)].whereNotNull())
+        .expand((images) => images)
+        .toList();
+  }
+
   static Future<TiledAtlas> fromLayer(
     TiledMap map,
     TileLayer layer,
   ) async {
-    final uniqueTilesets = <Tileset>{};
-    layer.tileData?.forEach((row) {
-      row.forEach((gid) {
-        if (gid.tile == 0) return;
-        uniqueTilesets.add(map.tilesetByTileGId(gid.tile));
-      });
-    });
-
-    final images = uniqueTilesets
-        .map((e) => [e.image, ...e.tiles.map((e) => e.image)].whereNotNull())
-        .expand((element) => element)
-        .toList();
-
+    final images = _getImagesUsedInLayer(map, layer);
     if (images.isEmpty) {
       // so this map has no tiles... Ok.
       return TiledAtlas._(atlas: null, offsets: {}, key: 'atlas{empty}');
@@ -129,100 +135,5 @@ class TiledAtlas {
     Flame.images.add(key, image);
     return atlasMap[key] =
         TiledAtlas._(atlas: image, offsets: offsetMap, key: key);
-  }
-
-  /// Loads all the tileset images for the [map] into one [TiledAtlas].
-  static Future<TiledAtlas> fromTiledMap(TiledMap map) async {
-    final imageList = map.getTileImages().toList();
-
-    if (imageList.isEmpty) {
-      // so this map has no tiles... Ok.
-      return TiledAtlas._(
-        atlas: null,
-        offsets: {},
-        key: 'atlas{empty}',
-      );
-    }
-
-    final key = atlasKey(imageList);
-    if (atlasMap.containsKey(key)) {
-      return atlasMap[key]!.clone();
-    }
-
-    if (imageList.length == 1) {
-      // The map contains one image, so its either an atlas already, or a
-      // really boring map.
-      final tiledImage = imageList.first;
-      final image =
-          (await Flame.images.load(tiledImage.source!, key: key)).clone();
-
-      return atlasMap[key] ??= TiledAtlas._(
-        atlas: image,
-        offsets: {tiledImage.source!: Offset.zero},
-        key: key,
-      );
-    }
-
-    final bin = RectangleBinPacker();
-    final recorder = PictureRecorder();
-    final canvas = Canvas(recorder);
-    final _emptyPaint = Paint();
-
-    final offsetMap = <String, Offset>{};
-
-    var pictureRect = Rect.zero;
-
-    imageList.sort((b, a) {
-      final height = a.height! - b.height!;
-      return height != 0 ? height : a.width! - b.width!;
-    });
-
-    // parallelize the download of images.
-    await Future.wait([
-      ...imageList.map((tiledImage) => Flame.images.load(tiledImage.source!))
-    ]);
-
-    for (final tiledImage in imageList) {
-      final image = await Flame.images.load(tiledImage.source!);
-      final rect = bin.pack(image.width.toDouble(), image.height.toDouble());
-
-      pictureRect = pictureRect.expandToInclude(rect);
-
-      final offset =
-          offsetMap[tiledImage.source!] = Offset(rect.left, rect.top);
-
-      canvas.drawImage(image, offset, _emptyPaint);
-    }
-    final picture = recorder.endRecording();
-    final image = await picture.toImageSafe(
-      pictureRect.width.toInt(),
-      pictureRect.height.toInt(),
-    );
-    Flame.images.add(key, image);
-    return atlasMap[key] = TiledAtlas._(
-      atlas: image,
-      offsets: offsetMap,
-      key: key,
-    );
-  }
-}
-
-extension TiledMapHelper on TiledMap {
-  /// Collect images that we'll use in tiles - exclude image layers.
-  Set<TiledImage> getTileImages() {
-    final imageSet = <TiledImage>{};
-    for (var i = 0; i < tilesets.length; ++i) {
-      final image = tilesets[i].image;
-      if (image?.source != null) {
-        imageSet.add(image!);
-      }
-      for (var j = 0; j < tilesets[i].tiles.length; ++j) {
-        final image = tilesets[i].tiles[j].image;
-        if (image?.source != null) {
-          imageSet.add(image!);
-        }
-      }
-    }
-    return imageSet;
   }
 }

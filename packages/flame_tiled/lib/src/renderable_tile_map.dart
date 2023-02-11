@@ -9,7 +9,6 @@ import 'package:flame_tiled/src/renderable_layers/group_layer.dart';
 import 'package:flame_tiled/src/renderable_layers/renderable_layer.dart';
 import 'package:flame_tiled/src/renderable_layers/tile_layers/tile_layer.dart';
 import 'package:flame_tiled/src/tile_animation.dart';
-import 'package:flame_tiled/src/tile_atlas.dart';
 import 'package:flame_tiled/src/tile_stack.dart';
 import 'package:flutter/painting.dart';
 import 'package:tiled/tiled.dart';
@@ -231,6 +230,24 @@ class RenderableTiledMap {
     );
   }
 
+  /// Collect images that we'll use in tiles - exclude image layers.
+  static Set<TiledImage> getTileImages(TiledMap map) {
+    final imageSet = <TiledImage>{};
+    for (var i = 0; i < map.tilesets.length; ++i) {
+      final image = map.tilesets[i].image;
+      if (image?.source != null) {
+        imageSet.add(image!);
+      }
+      for (var j = 0; j < map.tilesets[i].tiles.length; ++j) {
+        final image = map.tilesets[i].tiles[j].image;
+        if (image?.source != null) {
+          imageSet.add(image!);
+        }
+      }
+    }
+    return imageSet;
+  }
+
   /// Parses a [TiledMap] returning a [RenderableTiledMap].
   ///
   /// {@macro renderable_tile_map_factory}
@@ -251,8 +268,7 @@ class RenderableTiledMap {
 
     // parallelize the download of images.
     await Future.wait([
-      ...map
-          .getTileImages()
+      ...getTileImages(map)
           .map((tiledImage) => Flame.images.load(tiledImage.source!))
     ]);
 
