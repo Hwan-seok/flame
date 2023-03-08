@@ -1,9 +1,13 @@
+import 'dart:html';
 import 'package:dashbook/dashbook.dart';
 import 'package:examples/stories/animations/animations.dart';
 import 'package:examples/stories/bridge_libraries/audio/audio.dart';
 import 'package:examples/stories/bridge_libraries/flame_isolate/isolate.dart';
 import 'package:examples/stories/bridge_libraries/flame_lottie/lottie.dart';
 import 'package:examples/stories/bridge_libraries/forge2d/flame_forge2d.dart';
+import 'package:examples/stories/bridge_libraries/forge2d/joints/constant_volume_joint.dart';
+import 'package:examples/stories/bridge_libraries/forge2d/joints/distance_joint.dart';
+import 'package:examples/stories/bridge_libraries/forge2d/joints/friction_joint.dart';
 import 'package:examples/stories/camera_and_viewport/camera_and_viewport.dart';
 import 'package:examples/stories/collision_detection/collision_detection.dart';
 import 'package:examples/stories/components/components.dart';
@@ -11,6 +15,7 @@ import 'package:examples/stories/effects/effects.dart';
 import 'package:examples/stories/experimental/experimental.dart';
 import 'package:examples/stories/games/games.dart';
 import 'package:examples/stories/input/input.dart';
+import 'package:examples/stories/layout/layout.dart';
 import 'package:examples/stories/parallax/parallax.dart';
 import 'package:examples/stories/rendering/rendering.dart';
 import 'package:examples/stories/sprites/sprites.dart';
@@ -19,9 +24,29 @@ import 'package:examples/stories/system/system.dart';
 import 'package:examples/stories/tiled/tiled.dart';
 import 'package:examples/stories/utils/utils.dart';
 import 'package:examples/stories/widgets/widgets.dart';
+import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 
 void main() {
+  var page = window.location.search ?? '';
+  if (page.startsWith('?')) {
+    page = page.substring(1);
+  }
+
+  final routes = <String, FlameGame Function()>{
+    'constant_volume_joint': ConstantVolumeJointExample.new,
+    'distance_joint': DistanceJointExample.new,
+    'friction_joint': FrictionJointExample.new,
+  };
+  final game = routes[page]?.call();
+  if (game != null) {
+    runApp(GameWidget(game: game));
+  } else {
+    runAsDashbook();
+  }
+}
+
+void runAsDashbook() {
   final dashbook = Dashbook(
     title: 'Flame Examples',
     theme: ThemeData.dark(),
@@ -39,6 +64,7 @@ void main() {
   addEffectsStories(dashbook);
   addExperimentalStories(dashbook);
   addInputStories(dashbook);
+  addLayoutStories(dashbook);
   addParallaxStories(dashbook);
   addRenderingStories(dashbook);
   addTiledStories(dashbook);
