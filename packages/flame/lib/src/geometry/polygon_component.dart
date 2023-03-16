@@ -192,6 +192,25 @@ class PolygonComponent extends ShapeComponent {
     canvas.drawPath(_path, debugPaint);
   }
 
+  // Check if the point is inside the polygon itself by using ray casting algorithm
+  bool contains3(Vector2 point) {
+    final vertices = globalVertices();
+    final length = vertices.length;
+    var inside = false;
+    for (var i = 0, j = length - 1; i < length; j = i++) {
+      final xi = vertices[i].x;
+      final yi = vertices[i].y;
+      final xj = vertices[j].x;
+      final yj = vertices[j].y;
+      final intersect = ((yi > point.y) != (yj > point.y)) &&
+          (point.x < (xj - xi) * (point.y - yi) / (yj - yi) + xi);
+      if (intersect) {
+        inside = !inside;
+      }
+    }
+    return inside;
+  }
+
   /// Checks whether the polygon contains the [point].
   /// Note: The polygon needs to be convex for this to work.
   @override
