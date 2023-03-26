@@ -765,7 +765,7 @@ void main() {
             reason: 'layer has only one animation',
           );
           expect(
-            layer.animationFrames,
+            layer.tileToFrames,
             hasLength(4),
             reason: 'layer only caches frames in use',
           );
@@ -784,7 +784,7 @@ void main() {
             reason: 'two animations on this layer',
           );
           expect(
-            layer.animationFrames,
+            layer.tileToFrames,
             hasLength(4),
             reason: 'layer only caches frames in use',
           );

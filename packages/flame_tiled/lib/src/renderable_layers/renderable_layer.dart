@@ -4,7 +4,6 @@ import 'package:flame_tiled/src/renderable_layers/group_layer.dart';
 import 'package:flame_tiled/src/renderable_layers/image_layer.dart';
 import 'package:flame_tiled/src/renderable_layers/object_layer.dart';
 import 'package:flame_tiled/src/renderable_layers/tile_layers/tile_layer.dart';
-import 'package:flame_tiled/src/tile_animation.dart';
 import 'package:meta/meta.dart';
 import 'package:tiled/tiled.dart';
 
@@ -31,7 +30,6 @@ abstract class RenderableLayer<T extends Layer> {
     required TiledMap map,
     required Vector2 destTileSize,
     required Camera? camera,
-    required Map<Tile, TileFrames> animationFrames,
     bool? ignoreFlip,
   }) async {
     if (layer is TileLayer) {
@@ -40,7 +38,6 @@ abstract class RenderableLayer<T extends Layer> {
         parent: parent,
         map: map,
         destTileSize: destTileSize,
-        animationFrames: animationFrames,
         ignoreFlip: ignoreFlip,
       );
     } else if (layer is ImageLayer) {

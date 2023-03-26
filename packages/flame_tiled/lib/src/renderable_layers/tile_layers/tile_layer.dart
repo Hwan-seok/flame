@@ -37,8 +37,8 @@ abstract class FlameTileLayer extends RenderableLayer<TileLayer> {
   late final _layerPaint = Paint();
   final TiledAtlas tiledAtlas;
   late List<List<MutableRSTransform?>> transforms;
+  final tileToFrames = <Tile, TileFrames>{};
   final animations = <TileAnimation>[];
-  final Map<Tile, TileFrames> animationFrames;
   final bool ignoreFlip;
 
   FlameTileLayer({
@@ -47,7 +47,6 @@ abstract class FlameTileLayer extends RenderableLayer<TileLayer> {
     required super.map,
     required super.destTileSize,
     required this.tiledAtlas,
-    required this.animationFrames,
     required this.ignoreFlip,
   }) {
     _layerPaint.color = Color.fromRGBO(255, 255, 255, opacity);
@@ -59,7 +58,6 @@ abstract class FlameTileLayer extends RenderableLayer<TileLayer> {
     required GroupLayer? parent,
     required TiledMap map,
     required Vector2 destTileSize,
-    required Map<Tile, TileFrames> animationFrames,
     bool? ignoreFlip,
   }) async {
     ignoreFlip ??= false;
@@ -78,7 +76,6 @@ abstract class FlameTileLayer extends RenderableLayer<TileLayer> {
           map: map,
           destTileSize: destTileSize,
           tiledAtlas: atlas,
-          animationFrames: animationFrames,
           ignoreFlip: ignoreFlip,
         );
       case MapOrientation.staggered:
@@ -88,7 +85,6 @@ abstract class FlameTileLayer extends RenderableLayer<TileLayer> {
           map: map,
           destTileSize: destTileSize,
           tiledAtlas: atlas,
-          animationFrames: animationFrames,
           ignoreFlip: ignoreFlip,
         );
       case MapOrientation.hexagonal:
@@ -98,7 +94,6 @@ abstract class FlameTileLayer extends RenderableLayer<TileLayer> {
           map: map,
           destTileSize: destTileSize,
           tiledAtlas: atlas,
-          animationFrames: animationFrames,
           ignoreFlip: ignoreFlip,
         );
       case MapOrientation.orthogonal:
@@ -108,7 +103,6 @@ abstract class FlameTileLayer extends RenderableLayer<TileLayer> {
           map: map,
           destTileSize: destTileSize,
           tiledAtlas: atlas,
-          animationFrames: animationFrames,
           ignoreFlip: ignoreFlip,
         );
     }
@@ -116,6 +110,10 @@ abstract class FlameTileLayer extends RenderableLayer<TileLayer> {
 
   @override
   void update(double dt) {
+    for (final frames in tileToFrames.values) {
+      frames.update(dt);
+    }
+
     for (final animation in animations) {
       animation.update(dt);
     }
@@ -141,27 +139,29 @@ abstract class FlameTileLayer extends RenderableLayer<TileLayer> {
 
   @protected
   void addAnimation(Tile tile, Tileset tileset, MutableRect source) {
-    final frames = animationFrames[tile] ??= () {
-      final frameRectangles = <Rect>[];
-      final durations = <double>[];
-      for (final frame in tile.animation) {
-        final newTile = tileset.tiles[frame.tileId];
-        final image = newTile.image ?? tileset.image;
-        if (image?.source == null || !tiledAtlas.contains(image!.source)) {
-          continue;
-        }
-
-        final spriteOffset = tiledAtlas.offsets[image.source]!;
-        final rect = tileset
-            .computeDrawRect(newTile)
-            .toRect()
-            .translate(spriteOffset.dx, spriteOffset.dy);
-        frameRectangles.add(rect);
-        durations.add(frame.duration / 1000);
-      }
-      return TileFrames(frameRectangles, durations);
-    }();
+    final frames = tileToFrames[tile] ??= _generateFrames(tile, tileset);
     animations.add(TileAnimation(source, frames));
+  }
+
+  TileFrames _generateFrames(Tile tile, Tileset tileset) {
+    final frameRectangles = <Rect>[];
+    final durations = <double>[];
+    for (final frame in tile.animation) {
+      final newTile = tileset.tiles[frame.tileId];
+      final image = newTile.image ?? tileset.image;
+      if (image?.source == null || !tiledAtlas.contains(image!.source)) {
+        continue;
+      }
+
+      final spriteOffset = tiledAtlas.offsets[image.source]!;
+      final rect = tileset
+          .computeDrawRect(newTile)
+          .toRect()
+          .translate(spriteOffset.dx, spriteOffset.dy);
+      frameRectangles.add(rect);
+      durations.add(frame.duration / 1000);
+    }
+    return TileFrames(frameRectangles, durations);
   }
 
   @override

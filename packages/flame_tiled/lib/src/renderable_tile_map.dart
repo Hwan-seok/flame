@@ -8,7 +8,6 @@ import 'package:flame_tiled/src/mutable_transform.dart';
 import 'package:flame_tiled/src/renderable_layers/group_layer.dart';
 import 'package:flame_tiled/src/renderable_layers/renderable_layer.dart';
 import 'package:flame_tiled/src/renderable_layers/tile_layers/tile_layer.dart';
-import 'package:flame_tiled/src/tile_animation.dart';
 import 'package:flame_tiled/src/tile_stack.dart';
 import 'package:flutter/painting.dart';
 import 'package:tiled/tiled.dart';
@@ -48,15 +47,12 @@ class RenderableTiledMap {
   /// Paint for the map's background color, if there is one
   late final Paint? _backgroundPaint;
 
-  final Map<Tile, TileFrames> animationFrames;
-
   /// {@macro _renderable_tiled_map}
   RenderableTiledMap(
     this.map,
     this.renderableLayers,
     this.destTileSize, {
     this.camera,
-    this.animationFrames = const {},
   }) {
     _refreshCache();
 
@@ -257,11 +253,6 @@ class RenderableTiledMap {
     Camera? camera,
     bool? ignoreFlip,
   }) async {
-    // We're not going to load animation frames that are never referenced; but
-    // we do supply the common cache for all layers in this map, and maintain
-    // the update cycle for these in one place.
-    final animationFrames = <Tile, TileFrames>{};
-
     // While this _should_ not be needed - it is possible have tilesets out of
     // order and Tiled won't complain, but we'll fail.
     map.tilesets.sort((l, r) => (l.firstGid ?? 0) - (r.firstGid ?? 0));
@@ -278,7 +269,6 @@ class RenderableTiledMap {
       map,
       destTileSize,
       camera,
-      animationFrames,
       ignoreFlip: ignoreFlip,
     );
 
@@ -287,7 +277,6 @@ class RenderableTiledMap {
       renderableLayers,
       destTileSize,
       camera: camera,
-      animationFrames: animationFrames,
     );
   }
 
@@ -296,8 +285,7 @@ class RenderableTiledMap {
     GroupLayer? parent,
     TiledMap map,
     Vector2 destTileSize,
-    Camera? camera,
-    Map<Tile, TileFrames> animationFrames, {
+    Camera? camera, {
     bool? ignoreFlip,
   }) async {
     final visibleLayers = layers.where((layer) => layer.visible);
@@ -309,7 +297,6 @@ class RenderableTiledMap {
         map: map,
         destTileSize: destTileSize,
         camera: camera,
-        animationFrames: animationFrames,
         ignoreFlip: ignoreFlip,
       );
 
@@ -320,7 +307,6 @@ class RenderableTiledMap {
           map,
           destTileSize,
           camera,
-          animationFrames,
           ignoreFlip: ignoreFlip,
         );
       }
@@ -370,12 +356,6 @@ class RenderableTiledMap {
   }
 
   void update(double dt) {
-    // First, update animation frames.
-    for (final frame in animationFrames.values) {
-      frame.update(dt);
-    }
-
-    // Then every layer.
     for (final layer in renderableLayers) {
       layer.update(dt);
     }
