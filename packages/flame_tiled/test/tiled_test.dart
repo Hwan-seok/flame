@@ -764,12 +764,17 @@ void main() {
           expect(
             singleFrameLayer.tileToFrames,
             hasLength(1),
-            reason: 'one animations on this layer',
+            reason: 'one tile frames on this layer',
           );
           expect(
             singleFrameLayer.tileToFrames.values.first.sources,
             hasLength(1),
-            reason: 'one frame in the animation',
+            reason: 'one frame in the tile frames',
+          );
+          expect(
+            singleFrameLayer.animations,
+            hasLength(1),
+            reason: 'one animations on this layer',
           );
         });
 
@@ -779,15 +784,14 @@ void main() {
           ) as FlameTileLayer;
 
           expect(
-            layer.tileToFrames,
-            hasLength(2),
-            reason: 'two animations on this layer',
-          );
-
-          expect(
             layer.animations,
             hasLength(2),
             reason: 'two animations on this layer',
+          );
+          expect(
+            layer.tileToFrames,
+            hasLength(2),
+            reason: 'two tile frames on this layer',
           );
 
           final waterAnimation = layer.animations.first;

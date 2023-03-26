@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.9" tiledversion="1.9.2" orientation="hexagonal" renderorder="right-down" width="4" height="1" tilewidth="16" tileheight="16" infinite="0" hexsidelength="0" staggeraxis="y" staggerindex="odd" nextlayerid="5" nextobjectid="1">
+<map version="1.8" tiledversion="1.8.5" orientation="hexagonal" renderorder="right-down" width="4" height="1" tilewidth="16" tileheight="16" infinite="0" hexsidelength="0" staggeraxis="y" staggerindex="odd" nextlayerid="5" nextobjectid="1">
  <tileset firstgid="1" name="0x72_DungeonTilesetII_v1.4" tilewidth="16" tileheight="16" tilecount="1024" columns="32">
   <image source="0x72_DungeonTilesetII_v1.4.png" width="512" height="512"/>
   <tile id="40">
@@ -39,20 +39,20 @@
   </tile>
  </tileset>
  <layer id="1" name="single" width="4" height="1">
-  <data encoding="base64" compression="zlib">
-   eJxTYmBgUAJiTSA+AsQACCABMg==
-  </data>
+  <data encoding="csv">
+34,34,41,196
+</data>
  </layer>
  <layer id="2" name="spike" width="4" height="1">
-  <data encoding="base64" compression="zlib">
-   eJxLZWBgSGJkgAMACwMAyQ==
-  </data>
+  <data encoding="csv">
+101,354,0,0
+</data>
  </layer>
  <group id="3" name="group">
   <layer id="4" name="chest" width="4" height="1">
-   <data encoding="base64" compression="zlib">
-   eJwrYWJAAQAHbgB3
-  </data>
+   <data encoding="csv">
+628,0,0,0
+</data>
   </layer>
  </group>
 </map>
