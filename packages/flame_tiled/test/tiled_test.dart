@@ -757,34 +757,41 @@ void main() {
         });
 
         test('handle single frame animations ($mapType)', () {
-          final singleFrameLayer = map.renderableLayers
-                  .firstWhere((element) => element.layer.name == 'single')
-              as FlameTileLayer;
+          final singleFrameLayer = map.renderableLayers.firstWhere(
+            (element) => element.layer.name == 'single',
+          ) as FlameTileLayer;
 
           expect(
-            singleFrameLayer.tileToAnimations,
+            singleFrameLayer.tileToFrames,
             hasLength(1),
             reason: 'one animations on this layer',
           );
           expect(
-            singleFrameLayer.tileToAnimations.values.first.frames.sources,
+            singleFrameLayer.tileToFrames.values.first.sources,
             hasLength(1),
             reason: 'one frame in the animation',
           );
         });
 
         test('handle multi frame animations ($mapType)', () {
-          final layer = map.renderableLayers
-                  .firstWhere((element) => element.layer.name == 'spike')
-              as FlameTileLayer;
+          final layer = map.renderableLayers.firstWhere(
+            (element) => element.layer.name == 'spike',
+          ) as FlameTileLayer;
+
           expect(
-            layer.tileToAnimations,
+            layer.tileToFrames,
             hasLength(2),
             reason: 'two animations on this layer',
           );
 
-          final waterAnimation = layer.tileToAnimations.values.first;
-          final spikeAnimation = layer.tileToAnimations.values.last;
+          expect(
+            layer.animations,
+            hasLength(2),
+            reason: 'two animations on this layer',
+          );
+
+          final waterAnimation = layer.animations.first;
+          final spikeAnimation = layer.animations.last;
           expect(waterAnimation.frames.durations, [.18, .17, .15]);
           expect(spikeAnimation.frames.durations, [.176, .176, .176, .176]);
 
