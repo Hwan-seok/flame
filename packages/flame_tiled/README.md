@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-Adds support for [Tiled](https://www.mapeditor.org/)'s tile maps to your [Flame](https://github.com/flame-engine/flame) games.
+Adds support for <a href="https://www.mapeditor.org/">Tiled</a>'s tile maps to your <a href="https://github.com/flame-engine/flame">Flame</a> games.
 </p>
 
 <p align="center">
@@ -30,10 +30,10 @@ Adds support for [Tiled](https://www.mapeditor.org/)'s tile maps to your [Flame]
 Package to bridge the `tiled` library into easy-to-use Flame components.
 
 <p align="center">
-    <img alt="flame_tiled example" width="200px" src="/packages/flame_tiled/example/screenshot.png">
+    <img alt="flame_tiled example" width="500px" src="https://raw.githubusercontent.com/flame-engine/flame/master/packages/flame_tiled/example/screenshot.png">
 </p>
 
-More [here](https://docs.flame-engine.org/main/tiled.html).
+More documentation can be found [here](https://docs.flame-engine.org/main/tiled.html).
 
 
 ## Contributors (before the package moved into the monorepo)
