@@ -757,40 +757,34 @@ void main() {
         });
 
         test('handle single frame animations ($mapType)', () {
-          expect(map.renderableLayers.first, isInstanceOf<FlameTileLayer>());
-          final layer = map.renderableLayers.first as FlameTileLayer;
+          final singleFrameLayer = map.renderableLayers
+                  .firstWhere((element) => element.layer.name == 'single')
+              as FlameTileLayer;
+
           expect(
-            layer.animations,
+            singleFrameLayer.tileToAnimations,
             hasLength(1),
-            reason: 'layer has only one animation',
+            reason: 'one animations on this layer',
           );
           expect(
-            layer.tileToFrames,
-            hasLength(4),
-            reason: 'layer only caches frames in use',
+            singleFrameLayer.tileToAnimations.values.first.frames.sources,
+            hasLength(1),
+            reason: 'one frame in the animation',
           );
-          expect(layer.animations.first.frames.sources, hasLength(1));
         });
 
-        test('handle single frame animations ($mapType)', () {
+        test('handle multi frame animations ($mapType)', () {
+          final layer = map.renderableLayers
+                  .firstWhere((element) => element.layer.name == 'spike')
+              as FlameTileLayer;
           expect(
-            map.renderableLayers[1],
-            isInstanceOf<FlameTileLayer>(),
-          );
-          final layer = map.renderableLayers[1] as FlameTileLayer;
-          expect(
-            layer.animations,
+            layer.tileToAnimations,
             hasLength(2),
             reason: 'two animations on this layer',
           );
-          expect(
-            layer.tileToFrames,
-            hasLength(4),
-            reason: 'layer only caches frames in use',
-          );
 
-          final waterAnimation = layer.animations.first;
-          final spikeAnimation = layer.animations.last;
+          final waterAnimation = layer.tileToAnimations.values.first;
+          final spikeAnimation = layer.tileToAnimations.values.last;
           expect(waterAnimation.frames.durations, [.18, .17, .15]);
           expect(spikeAnimation.frames.durations, [.176, .176, .176, .176]);
 

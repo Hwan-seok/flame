@@ -37,8 +37,7 @@ abstract class FlameTileLayer extends RenderableLayer<TileLayer> {
   late final _layerPaint = Paint();
   final TiledAtlas tiledAtlas;
   late List<List<MutableRSTransform?>> transforms;
-  final tileToFrames = <Tile, TileFrames>{};
-  final animations = <TileAnimation>[];
+  final tileToAnimations = <Tile, TileAnimation>{};
   final bool ignoreFlip;
 
   FlameTileLayer({
@@ -110,11 +109,8 @@ abstract class FlameTileLayer extends RenderableLayer<TileLayer> {
 
   @override
   void update(double dt) {
-    for (final frames in tileToFrames.values) {
-      frames.update(dt);
-    }
-
-    for (final animation in animations) {
+    for (final animation in tileToAnimations.values) {
+      animation.frames.update(dt);
       animation.update(dt);
     }
   }
@@ -139,8 +135,10 @@ abstract class FlameTileLayer extends RenderableLayer<TileLayer> {
 
   @protected
   void addAnimation(Tile tile, Tileset tileset, MutableRect source) {
-    final frames = tileToFrames[tile] ??= _generateFrames(tile, tileset);
-    animations.add(TileAnimation(source, frames));
+    tileToAnimations[tile] ??= TileAnimation(
+      source,
+      _generateFrames(tile, tileset),
+    );
   }
 
   TileFrames _generateFrames(Tile tile, Tileset tileset) {
@@ -166,7 +164,7 @@ abstract class FlameTileLayer extends RenderableLayer<TileLayer> {
 
   @override
   void refreshCache() {
-    animations.clear();
+    tileToAnimations.clear();
     transforms = List.generate(
       layer.width,
       (index) => List.filled(layer.height, null),
