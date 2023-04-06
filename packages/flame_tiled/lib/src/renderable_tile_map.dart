@@ -8,8 +8,6 @@ import 'package:flame_tiled/src/mutable_transform.dart';
 import 'package:flame_tiled/src/renderable_layers/group_layer.dart';
 import 'package:flame_tiled/src/renderable_layers/renderable_layer.dart';
 import 'package:flame_tiled/src/renderable_layers/tile_layers/tile_layer.dart';
-import 'package:flame_tiled/src/tile_animation.dart';
-import 'package:flame_tiled/src/tile_atlas.dart';
 import 'package:flame_tiled/src/tile_stack.dart';
 import 'package:flutter/painting.dart';
 import 'package:tiled/tiled.dart';
@@ -49,15 +47,12 @@ class RenderableTiledMap {
   /// Paint for the map's background color, if there is one
   late final Paint? _backgroundPaint;
 
-  final Map<Tile, TileFrames> animationFrames;
-
   /// {@macro _renderable_tiled_map}
   RenderableTiledMap(
     this.map,
     this.renderableLayers,
     this.destTileSize, {
     this.camera,
-    this.animationFrames = const {},
   }) {
     _refreshCache();
 
@@ -231,6 +226,24 @@ class RenderableTiledMap {
     );
   }
 
+  /// Collect images that we'll use in tiles - exclude image layers.
+  static Set<TiledImage> _getTileImages(TiledMap map) {
+    final imageSet = <TiledImage>{};
+    for (var i = 0; i < map.tilesets.length; ++i) {
+      final image = map.tilesets[i].image;
+      if (image?.source != null) {
+        imageSet.add(image!);
+      }
+      for (var j = 0; j < map.tilesets[i].tiles.length; ++j) {
+        final image = map.tilesets[i].tiles[j].image;
+        if (image?.source != null) {
+          imageSet.add(image!);
+        }
+      }
+    }
+    return imageSet;
+  }
+
   /// Parses a [TiledMap] returning a [RenderableTiledMap].
   ///
   /// {@macro renderable_tile_map_factory}
@@ -240,14 +253,15 @@ class RenderableTiledMap {
     Camera? camera,
     bool? ignoreFlip,
   }) async {
-    // We're not going to load animation frames that are never referenced; but
-    // we do supply the common cache for all layers in this map, and maintain
-    // the update cycle for these in one place.
-    final animationFrames = <Tile, TileFrames>{};
-
     // While this _should_ not be needed - it is possible have tilesets out of
     // order and Tiled won't complain, but we'll fail.
     map.tilesets.sort((l, r) => (l.firstGid ?? 0) - (r.firstGid ?? 0));
+
+    // parallelize the download of images.
+    await Future.wait([
+      ..._getTileImages(map)
+          .map((tiledImage) => Flame.images.load(tiledImage.source!))
+    ]);
 
     final renderableLayers = await _renderableLayers(
       map.layers,
@@ -255,8 +269,6 @@ class RenderableTiledMap {
       map,
       destTileSize,
       camera,
-      animationFrames,
-      atlas: await TiledAtlas.fromTiledMap(map),
       ignoreFlip: ignoreFlip,
     );
 
@@ -265,7 +277,6 @@ class RenderableTiledMap {
       renderableLayers,
       destTileSize,
       camera: camera,
-      animationFrames: animationFrames,
     );
   }
 
@@ -274,9 +285,7 @@ class RenderableTiledMap {
     GroupLayer? parent,
     TiledMap map,
     Vector2 destTileSize,
-    Camera? camera,
-    Map<Tile, TileFrames> animationFrames, {
-    required TiledAtlas atlas,
+    Camera? camera, {
     bool? ignoreFlip,
   }) async {
     final visibleLayers = layers.where((layer) => layer.visible);
@@ -288,8 +297,6 @@ class RenderableTiledMap {
         map: map,
         destTileSize: destTileSize,
         camera: camera,
-        animationFrames: animationFrames,
-        atlas: atlas,
         ignoreFlip: ignoreFlip,
       );
 
@@ -300,8 +307,6 @@ class RenderableTiledMap {
           map,
           destTileSize,
           camera,
-          animationFrames,
-          atlas: atlas,
           ignoreFlip: ignoreFlip,
         );
       }
@@ -351,12 +356,6 @@ class RenderableTiledMap {
   }
 
   void update(double dt) {
-    // First, update animation frames.
-    for (final frame in animationFrames.values) {
-      frame.update(dt);
-    }
-
-    // Then every layer.
     for (final layer in renderableLayers) {
       layer.update(dt);
     }

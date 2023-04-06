@@ -45,8 +45,9 @@ void main() {
       });
 
       test('handles empty map', () async {
-        final atlas = await TiledAtlas.fromTiledMap(
+        final atlas = await TiledAtlas.fromLayer(
           TiledMap(height: 1, tileHeight: 1, tileWidth: 1, width: 1),
+          TileLayer(name: 'layer 1', width: 1, height: 1),
         );
 
         expect(atlas.atlas, isNull);
@@ -74,10 +75,17 @@ void main() {
           ),
         ],
       );
+      final simpleLayer = TileLayer(
+        name: 'layer 1',
+        width: 1,
+        height: 1,
+        data: [1],
+      );
 
       test('returns single image atlas for simple map', () async {
-        final atlas = await TiledAtlas.fromTiledMap(
+        final atlas = await TiledAtlas.fromLayer(
           simpleMap,
+          simpleLayer,
         );
 
         expect(atlas.offsets, hasLength(1));
@@ -95,11 +103,13 @@ void main() {
       });
 
       test('returns cached atlas', () async {
-        final atlas1 = await TiledAtlas.fromTiledMap(
+        final atlas1 = await TiledAtlas.fromLayer(
           simpleMap,
+          simpleLayer,
         );
-        final atlas2 = await TiledAtlas.fromTiledMap(
+        final atlas2 = await TiledAtlas.fromLayer(
           simpleMap,
+          simpleLayer,
         );
 
         expect(atlas1, isNot(same(atlas2)));
@@ -111,11 +121,13 @@ void main() {
         final component =
             await TiledComponent.load('isometric_plain.tmx', Vector2(128, 74));
 
-        final atlas = TiledAtlas.atlasMap.values.first;
-        expect(
-          await imageToPng(atlas.atlas!),
-          matchesGoldenFile('goldens/larger_atlas.png'),
-        );
+        final atlases = TiledAtlas.atlasMap.values.toList();
+        for (var idx = 0; idx < atlases.length; idx++) {
+          expect(
+            await imageToPng(atlases[idx].atlas!),
+            matchesGoldenFile('goldens/larger_atlas-$idx.png'),
+          );
+        }
         expect(
           renderMapToPng(component),
           matchesGoldenFile('goldens/larger_atlas_component.png'),

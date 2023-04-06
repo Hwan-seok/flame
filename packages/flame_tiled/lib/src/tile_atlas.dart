@@ -1,5 +1,6 @@
 import 'dart:ui';
 
+import 'package:collection/collection.dart';
 import 'package:flame/flame.dart';
 import 'package:flame/image_composition.dart';
 import 'package:flame/sprite.dart';
@@ -62,28 +63,30 @@ class TiledAtlas {
     return 'atlas{$files}';
   }
 
-  /// Collect images that we'll use in tiles - exclude image layers.
-  static Set<TiledImage> _onlyTileImages(TiledMap map) {
-    final imageSet = <TiledImage>{};
-    for (var i = 0; i < map.tilesets.length; ++i) {
-      final image = map.tilesets[i].image;
-      if (image?.source != null) {
-        imageSet.add(image!);
-      }
-      for (var j = 0; j < map.tilesets[i].tiles.length; ++j) {
-        final image = map.tilesets[i].tiles[j].image;
-        if (image?.source != null) {
-          imageSet.add(image!);
+  static List<TiledImage> _getImagesUsedInLayer(TiledMap map, TileLayer layer) {
+    final usedTilesets = <Tileset>{};
+    final cache = <int>{};
+    const emptyTile = 0;
+    layer.tileData?.forEach((ty) {
+      ty.forEach((gid) {
+        if (gid.tile == emptyTile || cache.contains(gid.tile)) {
+          return;
         }
-      }
-    }
-    return imageSet;
+        usedTilesets.add(map.tilesetByTileGId(gid.tile));
+      });
+    });
+
+    return usedTilesets
+        .map((e) => [e.image, ...e.tiles.map((e) => e.image)].whereNotNull())
+        .expand((images) => images)
+        .toList();
   }
 
-  /// Loads all the tileset images for the [map] into one [TiledAtlas].
-  static Future<TiledAtlas> fromTiledMap(TiledMap map) async {
-    final imageList = _onlyTileImages(map).toList();
-
+  static Future<TiledAtlas> fromLayer(
+    TiledMap map,
+    TileLayer layer,
+  ) async {
+    final imageList = _getImagesUsedInLayer(map, layer);
     if (imageList.isEmpty) {
       // so this map has no tiles... Ok.
       return TiledAtlas._(
@@ -127,11 +130,6 @@ class TiledAtlas {
       final height = a.height! - b.height!;
       return height != 0 ? height : a.width! - b.width!;
     });
-
-    // parallelize the download of images.
-    await Future.wait([
-      ...imageList.map((tiledImage) => Flame.images.load(tiledImage.source!))
-    ]);
 
     for (final tiledImage in imageList) {
       final image = await Flame.images.load(tiledImage.source!);

@@ -757,36 +757,41 @@ void main() {
         });
 
         test('handle single frame animations ($mapType)', () {
-          expect(map.renderableLayers.first, isInstanceOf<FlameTileLayer>());
-          final layer = map.renderableLayers.first as FlameTileLayer;
+          final singleFrameLayer = map.renderableLayers.firstWhere(
+            (element) => element.layer.name == 'single',
+          ) as FlameTileLayer;
+
           expect(
-            layer.animations,
+            singleFrameLayer.tileToFrames,
             hasLength(1),
-            reason: 'layer has only one animation',
+            reason: 'one tile frames on this layer',
           );
           expect(
-            layer.animationFrames,
-            hasLength(4),
-            reason: 'layer only caches frames in use',
+            singleFrameLayer.tileToFrames.values.first.sources,
+            hasLength(1),
+            reason: 'one frame in the tile frames',
           );
-          expect(layer.animations.first.frames.sources, hasLength(1));
+          expect(
+            singleFrameLayer.animations,
+            hasLength(1),
+            reason: 'one animations on this layer',
+          );
         });
 
-        test('handle single frame animations ($mapType)', () {
-          expect(
-            map.renderableLayers[1],
-            isInstanceOf<FlameTileLayer>(),
-          );
-          final layer = map.renderableLayers[1] as FlameTileLayer;
+        test('handle multi frame animations ($mapType)', () {
+          final layer = map.renderableLayers.firstWhere(
+            (element) => element.layer.name == 'spike',
+          ) as FlameTileLayer;
+
           expect(
             layer.animations,
             hasLength(2),
             reason: 'two animations on this layer',
           );
           expect(
-            layer.animationFrames,
-            hasLength(4),
-            reason: 'layer only caches frames in use',
+            layer.tileToFrames,
+            hasLength(2),
+            reason: 'two tile frames on this layer',
           );
 
           final waterAnimation = layer.animations.first;

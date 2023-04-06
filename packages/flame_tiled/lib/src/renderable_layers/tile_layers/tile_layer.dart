@@ -37,8 +37,8 @@ abstract class FlameTileLayer extends RenderableLayer<TileLayer> {
   late final _layerPaint = Paint();
   final TiledAtlas tiledAtlas;
   late List<List<MutableRSTransform?>> transforms;
+  final tileToFrames = <Tile, TileFrames>{};
   final animations = <TileAnimation>[];
-  final Map<Tile, TileFrames> animationFrames;
   final bool ignoreFlip;
 
   FlameTileLayer({
@@ -47,28 +47,26 @@ abstract class FlameTileLayer extends RenderableLayer<TileLayer> {
     required super.map,
     required super.destTileSize,
     required this.tiledAtlas,
-    required this.animationFrames,
     required this.ignoreFlip,
   }) {
     _layerPaint.color = Color.fromRGBO(255, 255, 255, opacity);
   }
 
   /// {@macro flame_tile_layer}
-  static FlameTileLayer load({
+  static Future<FlameTileLayer> load({
     required TileLayer layer,
     required GroupLayer? parent,
     required TiledMap map,
     required Vector2 destTileSize,
-    required Map<Tile, TileFrames> animationFrames,
-    required TiledAtlas atlas,
     bool? ignoreFlip,
-  }) {
+  }) async {
     ignoreFlip ??= false;
 
     final mapOrientation = map.orientation;
     if (mapOrientation == null) {
       throw StateError('Map orientation should be present');
     }
+    final atlas = await TiledAtlas.fromLayer(map, layer);
 
     switch (mapOrientation) {
       case MapOrientation.isometric:
@@ -78,7 +76,6 @@ abstract class FlameTileLayer extends RenderableLayer<TileLayer> {
           map: map,
           destTileSize: destTileSize,
           tiledAtlas: atlas,
-          animationFrames: animationFrames,
           ignoreFlip: ignoreFlip,
         );
       case MapOrientation.staggered:
@@ -88,7 +85,6 @@ abstract class FlameTileLayer extends RenderableLayer<TileLayer> {
           map: map,
           destTileSize: destTileSize,
           tiledAtlas: atlas,
-          animationFrames: animationFrames,
           ignoreFlip: ignoreFlip,
         );
       case MapOrientation.hexagonal:
@@ -98,7 +94,6 @@ abstract class FlameTileLayer extends RenderableLayer<TileLayer> {
           map: map,
           destTileSize: destTileSize,
           tiledAtlas: atlas,
-          animationFrames: animationFrames,
           ignoreFlip: ignoreFlip,
         );
       case MapOrientation.orthogonal:
@@ -108,7 +103,6 @@ abstract class FlameTileLayer extends RenderableLayer<TileLayer> {
           map: map,
           destTileSize: destTileSize,
           tiledAtlas: atlas,
-          animationFrames: animationFrames,
           ignoreFlip: ignoreFlip,
         );
     }
@@ -116,6 +110,10 @@ abstract class FlameTileLayer extends RenderableLayer<TileLayer> {
 
   @override
   void update(double dt) {
+    for (final frame in tileToFrames.values) {
+      frame.update(dt);
+    }
+
     for (final animation in animations) {
       animation.update(dt);
     }
@@ -141,31 +139,34 @@ abstract class FlameTileLayer extends RenderableLayer<TileLayer> {
 
   @protected
   void addAnimation(Tile tile, Tileset tileset, MutableRect source) {
-    final frames = animationFrames[tile] ??= () {
-      final frameRectangles = <Rect>[];
-      final durations = <double>[];
-      for (final frame in tile.animation) {
-        final newTile = tileset.tiles[frame.tileId];
-        final image = newTile.image ?? tileset.image;
-        if (image?.source == null || !tiledAtlas.contains(image!.source)) {
-          continue;
-        }
+    final frame = tileToFrames[tile] ??= _generateFrames(tile, tileset);
+    animations.add(TileAnimation(source, frame));
+  }
 
-        final spriteOffset = tiledAtlas.offsets[image.source]!;
-        final rect = tileset
-            .computeDrawRect(newTile)
-            .toRect()
-            .translate(spriteOffset.dx, spriteOffset.dy);
-        frameRectangles.add(rect);
-        durations.add(frame.duration / 1000);
+  TileFrames _generateFrames(Tile tile, Tileset tileset) {
+    final frameRectangles = <Rect>[];
+    final durations = <double>[];
+    for (final frame in tile.animation) {
+      final newTile = tileset.tiles[frame.tileId];
+      final image = newTile.image ?? tileset.image;
+      if (image?.source == null || !tiledAtlas.contains(image!.source)) {
+        continue;
       }
-      return TileFrames(frameRectangles, durations);
-    }();
-    animations.add(TileAnimation(source, frames));
+
+      final spriteOffset = tiledAtlas.offsets[image.source]!;
+      final rect = tileset
+          .computeDrawRect(newTile)
+          .toRect()
+          .translate(spriteOffset.dx, spriteOffset.dy);
+      frameRectangles.add(rect);
+      durations.add(frame.duration / 1000);
+    }
+    return TileFrames(frameRectangles, durations);
   }
 
   @override
   void refreshCache() {
+    tileToFrames.clear();
     animations.clear();
     transforms = List.generate(
       layer.width,
