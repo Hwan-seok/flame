@@ -39,6 +39,9 @@ Every `Component` has a few methods that you can optionally implement, which are
 The `onGameResize` method is called whenever the screen is resized, and also when this component
 gets added into the component tree, before the `onMount`.
 
+The `onParentResize` method is similar: it is also called when the component is mounted into the
+component tree, and also whenever the parent of the current component changes its size.
+
 The `onRemove` method can be overridden to run code before the component is removed from the game,
 it is only run once even if the component is removed both by using the parents remove method and
 the `Component` remove method.
@@ -96,9 +99,10 @@ class MyGame extends FlameGame {
 ```
 
 To update the priority of a component you have to set it to a new value, like
-`component.priority = 2`, and it will be updated in the next tick.
+`component.priority = 2`, and it will be updated in the current tick before the rendering stage.
 
-Example:
+In the following example we first initialize the component with priority 1, and then when the
+user taps the component we change its priority to 2:
 
 ```dart
 class MyComponent extends PositionComponent with Tappable {
@@ -111,9 +115,6 @@ class MyComponent extends PositionComponent with Tappable {
   }
 }
 ```
-
-In the example above we first initialize the component with priority 1, and then when the user taps
-the component we change the priority to 2.
 
 
 ### Composability of components
@@ -385,18 +386,20 @@ as the point within the component by which Flame "grabs" it.
 
 All children of the `PositionComponent` will be transformed in relation to the parent, which means
 that the `position`, `angle` and `scale` will be relative to the parents state.
-So if you, for example, wanted to position a child 50 logical pixels above the center of the parent
-you would do this:
+So if you, for example, wanted to position a child in the center of the parent you would do this:
 
 ```dart
-Future<void> onLoad() async {
+@override
+void onLoad() {
   final parent = PositionComponent(
     position: Vector2(100, 100),
     size: Vector2(100, 100),
+  );
+  final child = PositionComponent(
+    position: parent.size / 2,
     anchor: Anchor.center,
   );
-  final child = PositionComponent(position: Vector2(0, -50));
-  await parent.add(child);
+  parent.add(child);
 }
 ```
 
@@ -461,6 +464,7 @@ This class is used to represent a Component that has sprites that run in a singl
 This will create a simple three frame animation using 3 different images:
 
 ```dart
+@override
 Future<void> onLoad() async {
   final sprites = [0, 1, 2]
       .map((i) => Sprite.load('player_$i.png'));
@@ -479,6 +483,7 @@ If you have a sprite sheet, you can use the `sequenced` constructor from the `Sp
 class (check more details on [Images &gt; Animation](rendering/images.md#animation)):
 
 ```dart
+@override
 Future<void> onLoad() async {
   final size = Vector2.all(64.0);
   final data = SpriteAnimationData.sequenced(
@@ -608,6 +613,7 @@ This component uses an instance of `Svg` class to represent a Component that has
 rendered in the game:
 
 ```dart
+@override
 Future<void> onLoad() async {
   final svg = await Svg.load('android.svg');
   final android = SvgComponent.fromSvg(
@@ -732,6 +738,7 @@ They simplest way is to set the named optional parameters `baseVelocity` and
 background images along the X-axis with a faster speed the "closer" the image is:
 
 ```dart
+@override
 Future<void> onLoad() async {
   final parallaxComponent = await loadParallaxComponent(
     _dataList,
@@ -745,7 +752,8 @@ You can set the baseSpeed and layerDelta at any time, for example if your charac
 game speeds up.
 
 ```dart
-Future<void> onLoad() async {
+@override
+void onLoad() {
   final parallax = parallaxComponent.parallax;
   parallax.baseSpeed = Vector2(100, 0);
   parallax.velocityMultiplierDelta = Vector2(2.0, 1.0);

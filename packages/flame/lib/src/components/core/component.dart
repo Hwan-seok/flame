@@ -7,6 +7,7 @@ import 'package:flame/src/components/core/component_tree_root.dart';
 import 'package:flame/src/components/core/position_type.dart';
 import 'package:flame/src/components/mixins/coordinate_transform.dart';
 import 'package:flame/src/components/mixins/has_game_ref.dart';
+import 'package:flame/src/effects/provider_interfaces.dart';
 import 'package:flame/src/game/flame_game.dart';
 import 'package:flame/src/game/game.dart';
 import 'package:flame/src/gestures/events.dart';
@@ -261,8 +262,7 @@ class Component {
   /// This can be null if the component hasn't been added to the component tree
   /// yet, or if it is the root of component tree.
   ///
-  /// Setting this property is equivalent to the [changeParent] method, or to
-  /// [removeFromParent] if setting to null.
+  /// Setting this property to null is equivalent to [removeFromParent].
   Component? get parent => _parent;
   Component? _parent;
   set parent(Component? newParent) {
@@ -299,8 +299,11 @@ class Component {
 
   /// Returns the closest parent further up the hierarchy that satisfies type=T,
   /// or null if no such parent can be found.
-  T? findParent<T extends Component>() {
-    return ancestors().whereType<T>().firstOrNull;
+  ///
+  /// If [includeSelf] is set to true (default is false) then the component
+  /// which the call is made for is also included in the search.
+  T? findParent<T extends Component>({bool includeSelf = false}) {
+    return ancestors(includeSelf: includeSelf).whereType<T>().firstOrNull;
   }
 
   /// Returns the first child that matches the given type [T], or null if there
@@ -474,6 +477,14 @@ class Component {
   /// [onMount] call before.
   void onRemove() {}
 
+  /// Called whenever the parent of this component changes size; and also once
+  /// before [onMount].
+  ///
+  /// The component may change its own size or perform layout in response to
+  /// this call. If the component changes size, then it should call
+  /// [onParentResize] for all its children.
+  void onParentResize(Vector2 maxSize) {}
+
   /// This method is called periodically by the game engine to request that your
   /// component updates itself.
   ///
@@ -489,7 +500,6 @@ class Component {
   /// children according to their [priority] order, relative to the
   /// priority of the direct siblings, not the children or the ancestors.
   void updateTree(double dt) {
-    _children?.updateComponentList();
     update(dt);
     _children?.forEach((c) => c.updateTree(dt));
   }
@@ -544,7 +554,7 @@ class Component {
   /// A component can only be added to one parent at a time. It is an error to
   /// try to add it to multiple parents, or even to the same parent multiple
   /// times. If you need to change the parent of a component, use the
-  /// [changeParent] method.
+  /// [parent] setter.
   FutureOr<void> add(Component component) => _addChild(component);
 
   /// Adds this component as a child of [parent] (see [add] for details).
@@ -603,11 +613,7 @@ class Component {
 
   /// Removes all the children for which the [test] function returns true.
   void removeWhere(bool Function(Component component) test) {
-    for (final component in children) {
-      if (test(component)) {
-        remove(component);
-      }
-    }
+    removeAll([...children.where(test)]);
   }
 
   void _removeChild(Component child) {
@@ -639,6 +645,8 @@ class Component {
 
   /// Changes the current parent for another parent and prepares the tree under
   /// the new root.
+  @Deprecated('Will be removed in 1.9.0. Use the parent setter instead.')
+  // ignore: use_setters_to_change_properties
   void changeParent(Component newParent) {
     parent = newParent;
   }
@@ -728,22 +736,27 @@ class Component {
   int get priority => _priority;
   int _priority;
   set priority(int newPriority) {
-    if (parent == null) {
+    if (_priority != newPriority) {
       _priority = newPriority;
-    } else {
-      parent!.children.changePriority(this, newPriority);
+      final game = findGame();
+      if (game != null && _parent != null) {
+        (game as FlameGame).enqueueRebalance(_parent!);
+      }
     }
   }
 
   /// Usually this is not something that the user would want to call since the
   /// component list isn't re-ordered when it is called.
   /// See FlameGame.changePriority instead.
+  @Deprecated('Will be removed in 1.8.0. Use priority setter instead.')
+  // ignore: use_setters_to_change_properties
   void changePriorityWithoutResorting(int priority) => _priority = priority;
 
   /// Call this if any of this component's children priorities have changed
   /// at runtime.
   ///
   /// This will call [ComponentSet.rebalanceAll] on the [children] ordered set.
+  @Deprecated('Will be removed in 1.8.0, it is now done automatically.')
   void reorderChildren() => _children?.rebalanceAll();
 
   //#endregion
@@ -827,6 +840,9 @@ class Component {
     assert(isLoaded && !isLoading);
     _setMountingBit();
     onGameResize(_parent!.findGame()!.canvasSize);
+    if (_parent is ReadonlySizeProvider) {
+      onParentResize((_parent! as ReadonlySizeProvider).size);
+    }
     if (isRemoved) {
       _clearRemovedBit();
     } else if (isRemoving) {

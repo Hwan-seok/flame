@@ -5,7 +5,7 @@ import 'package:flame/game.dart';
 import 'package:flame/rendering.dart';
 import 'package:flutter/rendering.dart';
 
-class RouterGame extends FlameGame with HasTappableComponents {
+class RouterGame extends FlameGame {
   late final RouterComponent router;
 
   @override
@@ -373,8 +373,8 @@ class PauseRoute extends Route {
   }
 
   @override
-  void onPop(Route previousRoute) {
-    previousRoute
+  void onPop(Route nextRoute) {
+    nextRoute
       ..resumeTime()
       ..removeRenderEffect();
   }

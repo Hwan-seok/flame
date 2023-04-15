@@ -33,7 +33,7 @@ void main() {
       testWithFlameGame(
         'component.removed completes if obtained before the game was ready',
         (game) async {
-          final component = LifecycleComponent('component');
+          final component = LifecycleComponent();
           final removed = component.removed;
           await game.add(component);
           await game.ready();
@@ -48,7 +48,7 @@ void main() {
       testWithFlameGame(
         'component removed completes when set after game is ready',
         (game) async {
-          final component = LifecycleComponent('component');
+          final component = LifecycleComponent();
           await game.add(component);
           await game.ready();
           final removed = component.removed;
@@ -67,7 +67,7 @@ void main() {
           await game.ready();
           final removed = child.removed;
 
-          child.changeParent(game);
+          child.parent = game;
           game.update(0);
           await expectLater(removed, completes);
 
@@ -104,7 +104,7 @@ void main() {
 
           await expectLater(mounted, completes);
 
-          child.changeParent(game);
+          child.parent = game;
           mounted = child.mounted;
           game.update(0);
           await game.ready();
@@ -123,7 +123,7 @@ void main() {
           final mounted = child.mounted;
           await game.ready();
 
-          child.changeParent(parent);
+          child.parent = parent;
           game.update(0);
           await game.ready();
 
@@ -179,7 +179,7 @@ void main() {
         parent.add(child);
         game.add(parent);
         await game.ready();
-        child.changeParent(game);
+        child.parent = game;
         game.update(0);
         await game.ready();
 
@@ -691,6 +691,19 @@ void main() {
           );
         },
       );
+
+      testWithFlameGame(
+        'removeWhere works before all components are mounted',
+        (game) async {
+          game.add(_RemoveWhereComponent());
+          expect(
+            () async {
+              await game.ready();
+            },
+            returnsNormally,
+          );
+        },
+      );
     });
 
     group('Moving components', () {
@@ -920,7 +933,7 @@ void main() {
           await game.ensureAdd(parent1);
           await game.ensureAdd(parent2);
           await parent1.ensureAdd(child);
-          child.changeParent(parent2);
+          child.parent = parent2;
           await game.ready();
           expect(parent1.onChangedChildrenRuns, 2);
           expect(parent1.lastChangeType, ChildrenChangeType.removed);
@@ -1149,9 +1162,9 @@ class TwoChildrenComponent extends Component {
 
 class LifecycleComponent extends Component {
   final List<String> events = [];
-  final String? name;
+  final String name;
 
-  LifecycleComponent([this.name]);
+  LifecycleComponent([this.name = '']);
 
   int countEvents(String event) {
     return events.where((e) => e == event).length;
@@ -1188,6 +1201,9 @@ class LifecycleComponent extends Component {
     super.onGameResize(size);
     events.add('onGameResize $size');
   }
+
+  @override
+  String toString() => 'LifecycleComponent($name)';
 }
 
 class _SlowLoadingComponent extends Component {
@@ -1297,5 +1313,13 @@ class _OnChildrenChangedComponent extends PositionComponent {
   void onChildrenChanged(Component child, ChildrenChangeType type) {
     onChangedChildrenRuns++;
     lastChangeType = type;
+  }
+}
+
+class _RemoveWhereComponent extends Component {
+  @override
+  Future<void> onLoad() async {
+    add(Component());
+    removeWhere((_) => true);
   }
 }

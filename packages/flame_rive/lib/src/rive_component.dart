@@ -4,11 +4,8 @@ import 'dart:ui' as ui;
 
 import 'package:flame/components.dart';
 import 'package:flutter/rendering.dart';
+import 'package:rive/math.dart';
 import 'package:rive/rive.dart';
-// ignore_for_file: implementation_imports
-import 'package:rive/src/rive_core/math/aabb.dart';
-import 'package:rive/src/rive_core/math/mat2d.dart';
-import 'package:rive/src/rive_core/math/vec2d.dart';
 
 class RiveComponent extends PositionComponent {
   final Artboard artboard;
@@ -103,7 +100,8 @@ class RiveArtboardRenderer {
         contentHeight / 2.0 -
         (alignment.y * contentHeight / 2.0);
 
-    var scaleX = 1.0, scaleY = 1.0;
+    var scaleX = 1.0;
+    var scaleY = 1.0;
 
     canvas.save();
     canvas.clipRect(position & size);
