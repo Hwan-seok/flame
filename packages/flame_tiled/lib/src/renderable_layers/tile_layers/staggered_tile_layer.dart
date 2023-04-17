@@ -152,5 +152,7 @@ class StaggeredTileLayer extends FlameTileLayer {
         );
       }
     }
+
+    batch.cache();
   }
 }

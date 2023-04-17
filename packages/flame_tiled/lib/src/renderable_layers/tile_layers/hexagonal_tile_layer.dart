@@ -151,5 +151,7 @@ class HexagonalTileLayer extends FlameTileLayer {
         );
       }
     }
+
+    batch.cache();
   }
 }

@@ -91,5 +91,7 @@ class OrthogonalTileLayer extends FlameTileLayer {
         }
       }
     }
+
+    batch.cache();
   }
 }
