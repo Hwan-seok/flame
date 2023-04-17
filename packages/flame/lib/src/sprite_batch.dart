@@ -95,6 +95,111 @@ enum FlippedAtlasStatus {
   bool get isGenerated => this == FlippedAtlasStatus.generated;
 }
 
+abstract class ISpriteBatch {
+  const ISpriteBatch();
+
+  void render(Canvas canvas);
+
+  void add({
+    required Rect source,
+    double scale = 1.0,
+    Vector2? anchor,
+    double rotation = 0,
+    Vector2? offset,
+    bool flip = false,
+    Color? color,
+  });
+}
+
+class AtlasSpriteBatch extends ISpriteBatch {
+  void _renderByAtlas(
+    Canvas canvas, {
+    required BlendMode blendMode,
+    required Paint paint,
+    Rect? cullRect,
+  }) {
+    canvas.drawRawAtlas(
+      atlas,
+      _efficientTransforms!,
+      _efficientSources!,
+      _efficientColors,
+      blendMode,
+      cullRect,
+      paint,
+    );
+  }
+}
+
+class ImageSpriteBatch extends ISpriteBatch {
+  void _renderByImage(
+    Canvas canvas, {
+    required Paint paint,
+  }) {
+    for (final batchItem in _batchItems) {
+      canvas
+        ..save()
+        ..transform(batchItem.matrix.storage)
+        ..drawRect(batchItem.destination, batchItem.paint)
+        ..drawImageRect(
+          atlas,
+          batchItem.source,
+          batchItem.destination,
+          paint,
+        )
+        ..restore();
+    }
+  }
+}
+
+class RawAtlasSpriteBatch extends ISpriteBatch {
+  /// The [_transforms] that are flattened into a [Float32List] as follows:
+  /// [0.scos, 0.ssin, 0.tx, 0.ty, 1.scos, 1.ssin, 1.tx, 1.ty, ...]
+  Float32List? _efficientTransforms;
+
+  /// the [_sources] that are flattened into a [Float32List] as follows:
+  /// [0.left, 0.top, 0.right, 0.bottom, 1.left, 1.top, 1.right, 1.bottom, ...]
+  Float32List? _efficientSources;
+
+  /// This represents [_colors] converted to an [Int32List].
+  /// Each item is stored by its [Color.value].
+  Int32List? _efficientColors;
+
+  /// The [cache] caches [transforms], [sources], and [colors] into
+  /// [_efficientTransforms], [_efficientSources], and [_efficientColors] to
+  /// render atlas efficiently by using [Canvas.drawRawAtlas]
+  ///
+  /// Note that the cache should be re-created if you add transforms after
+  /// calling this method.
+  void cache() {
+    final rectCount = _sources.length;
+    final cachedTransforms = _efficientTransforms = Float32List(rectCount * 4);
+    final cachedSources = _efficientSources = Float32List(rectCount * 4);
+    final cachedColors = _efficientColors = Int32List(rectCount);
+
+    for (var i = 0; i < rectCount; i++) {
+      final index0 = i * 4;
+      final index1 = index0 + 1;
+      final index2 = index0 + 2;
+      final index3 = index0 + 3;
+      final rstTransform = transforms[i];
+      cachedTransforms[index0] = rstTransform.scos;
+      cachedTransforms[index1] = rstTransform.ssin;
+      cachedTransforms[index2] = rstTransform.tx;
+      cachedTransforms[index3] = rstTransform.ty;
+
+      final rect = _sources[i];
+      cachedSources[index0] = rect.left;
+      cachedSources[index1] = rect.top;
+      cachedSources[index2] = rect.right;
+      cachedSources[index3] = rect.bottom;
+    }
+
+    for (var i = 0; i < rectCount; ++i) {
+      cachedColors[i] = colors[i].value;
+    }
+  }
+}
+
 /// The SpriteBatch API allows for rendering multiple items at once.
 ///
 /// This class allows for optimization when you want to draw many parts of an
@@ -150,18 +255,6 @@ class SpriteBatch {
 
   /// List of all the existing batch items.
   final _batchItems = <BatchItem>[];
-
-  /// The [_transforms] that are flattened into a [Float32List] as follows:
-  /// [0.scos, 0.ssin, 0.tx, 0.ty, 1.scos, 1.ssin, 1.tx, 1.ty, ...]
-  Float32List? _efficientTransforms;
-
-  /// the [_sources] that are flattened into a [Float32List] as follows:
-  /// [0.left, 0.top, 0.right, 0.bottom, 1.left, 1.top, 1.right, 1.bottom, ...]
-  Float32List? _efficientSources;
-
-  /// This represents [_colors] converted to an [Int32List].
-  /// Each item is stored by its [Color.value].
-  Int32List? _efficientColors;
 
   /// The sources to use on the [atlas].
   final _sources = <Rect>[];
@@ -309,41 +402,6 @@ class SpriteBatch {
     _colors.add(batchItem.color);
   }
 
-  /// The [cache] caches [transforms], [sources], and [colors] into
-  /// [_efficientTransforms], [_efficientSources], and [_efficientColors] to
-  /// render atlas efficiently by using [Canvas.drawRawAtlas]
-  ///
-  /// Note that the cache should be re-created if you add transforms after
-  /// calling this method.
-  void cache() {
-    final rectCount = _sources.length;
-    final cachedTransforms = _efficientTransforms = Float32List(rectCount * 4);
-    final cachedSources = _efficientSources = Float32List(rectCount * 4);
-    final cachedColors = _efficientColors = Int32List(rectCount);
-
-    for (var i = 0; i < rectCount; i++) {
-      final index0 = i * 4;
-      final index1 = index0 + 1;
-      final index2 = index0 + 2;
-      final index3 = index0 + 3;
-      final rstTransform = transforms[i];
-      cachedTransforms[index0] = rstTransform.scos;
-      cachedTransforms[index1] = rstTransform.ssin;
-      cachedTransforms[index2] = rstTransform.tx;
-      cachedTransforms[index3] = rstTransform.ty;
-
-      final rect = _sources[i];
-      cachedSources[index0] = rect.left;
-      cachedSources[index1] = rect.top;
-      cachedSources[index2] = rect.right;
-      cachedSources[index3] = rect.bottom;
-    }
-
-    for (var i = 0; i < rectCount; ++i) {
-      cachedColors[i] = colors[i].value;
-    }
-  }
-
   /// Add a new batch item.
   ///
   /// The [source] parameter is the source location on the [atlas]. You can
@@ -437,42 +495,6 @@ class SpriteBatch {
     } else {
       maybePaint.blendMode = blendMode ?? maybePaint.blendMode;
       _renderByImage(canvas, paint: maybePaint);
-    }
-  }
-
-  void _renderByAtlas(
-    Canvas canvas, {
-    required BlendMode blendMode,
-    required Paint paint,
-    Rect? cullRect,
-  }) {
-    canvas.drawRawAtlas(
-      atlas,
-      _efficientTransforms!,
-      _efficientSources!,
-      _efficientColors,
-      blendMode,
-      cullRect,
-      paint,
-    );
-  }
-
-  void _renderByImage(
-    Canvas canvas, {
-    required Paint paint,
-  }) {
-    for (final batchItem in _batchItems) {
-      canvas
-        ..save()
-        ..transform(batchItem.matrix.storage)
-        ..drawRect(batchItem.destination, batchItem.paint)
-        ..drawImageRect(
-          atlas,
-          batchItem.source,
-          batchItem.destination,
-          paint,
-        )
-        ..restore();
     }
   }
 }
