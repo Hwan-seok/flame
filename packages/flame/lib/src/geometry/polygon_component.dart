@@ -201,10 +201,29 @@ class PolygonComponent extends ShapeComponent {
     canvas.drawPath(_path, debugPaint);
   }
 
+  // Check if the point is inside the polygon itself by using ray casting algorithm
+  bool contains3(Vector2 point) {
+    final vertices = globalVertices();
+    final length = vertices.length;
+    var inside = false;
+    for (var i = 0, j = length - 1; i < length; j = i++) {
+      final xi = vertices[i].x;
+      final yi = vertices[i].y;
+      final xj = vertices[j].x;
+      final yj = vertices[j].y;
+      final intersect = ((yi > point.y) != (yj > point.y)) &&
+          (point.x < (xj - xi) * (point.y - yi) / (yj - yi) + xi);
+      if (intersect) {
+        inside = !inside;
+      }
+    }
+    return inside;
+  }
+
   /// Checks whether the polygon contains the [point].
   /// Note: The polygon needs to be convex for this to work.
   @override
-  bool containsPoint(Vector2 point) {
+  bool containsPoint2(Vector2 point) {
     // If the size is 0 then it can't contain any points
     if (size.x == 0 || size.y == 0) {
       return false;
@@ -222,6 +241,40 @@ class PolygonComponent extends ShapeComponent {
       }
     }
     return true;
+  }
+
+  @override
+  bool containsPoint(Vector2 point) {
+    // If the size is 0 then it can't contain any points
+    if (size.x == 0 || size.y == 0) {
+      return false;
+    }
+
+    final vertices = globalVertices();
+    var intersections = 0;
+    for (var i = 0; i < vertices.length; i++) {
+      final edge = getEdge(i, vertices: vertices);
+      final edgeFrom = edge.from;
+      final edgeTo = edge.to;
+
+      // Check if the point is on the same level as the edge
+      if ((point.y >= edgeFrom.y && point.y < edgeTo.y) ||
+          (point.y >= edgeTo.y && point.y < edgeFrom.y)) {
+        // Calculate the x-coordinate of the intersection
+        final intersectionX = edgeFrom.x +
+            (point.y - edgeFrom.y) *
+                (edgeTo.x - edgeFrom.x) /
+                (edgeTo.y - edgeFrom.y);
+
+        // Check if the point is to the left of the intersection
+        if (point.x < intersectionX) {
+          intersections++;
+        }
+      }
+    }
+
+    // If the number of intersections is odd, the point is inside the polygon
+    return intersections.isOdd;
   }
 
   @override
